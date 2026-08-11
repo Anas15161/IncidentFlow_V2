@@ -139,7 +139,7 @@ function App() {
   const [editingCommentContent, setEditingCommentContent] = useState("");
   const [editingCommentTab, setEditingCommentTab] = useState('write');
 
-  // Real-time Audit Trail Log State ( / ITSM)
+  // Real-time Audit Trail Log State ( / Gestion d'Incidents)
   const [auditLogs, setAuditLogs] = useState([
     {
       id: 101,

@@ -94,7 +94,7 @@
   text-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
 }
 
-.highlight-itsm {
+.highlight-incident {
   background: linear-gradient(135deg, #60a5fa 30%, #3b82f6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

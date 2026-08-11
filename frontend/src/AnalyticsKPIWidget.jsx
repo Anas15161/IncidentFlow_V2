@@ -120,7 +120,7 @@ export function AnalyticsKPIWidget({ incidents = [] }) {
         <div>
           <h2 style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: 'var(--text-main, #0f172a)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Activity size={20} className="text-primary-600" />
-            Tableau de Bord de Performance ITSM & Métriques SLA
+            Tableau de Bord de Performance Gestion d'Incidents & Métriques SLA
           </h2>
           <p style={{ fontSize: '12px', color: 'var(--text-muted, #64748b)', margin: '4px 0 0 0' }}>
             Calcul automatique du temps de résolution (MTTR), de prise en charge (MTTA) et détection des goulots.

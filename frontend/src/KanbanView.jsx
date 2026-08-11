@@ -825,7 +825,7 @@ export function KanbanView({
             )}
           </div>
 
-          {/* Analytics ITSM Toggle Button */}
+          {/* Analytics Gestion d'Incidents Toggle Button */}
           <button
             className={`btn ${showAnalyticsPanel ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setShowAnalyticsPanel(!showAnalyticsPanel)}
@@ -833,7 +833,7 @@ export function KanbanView({
             title="Afficher/Masquer le tableau de bord des métriques MTTR, MTTA et SLA"
           >
             <BarChart2 size={15} />
-            <span>Analytics ITSM</span>
+            <span>Analytics Gestion d'Incidents</span>
           </button>
 
           {/* Executive Export Button */}
@@ -849,7 +849,7 @@ export function KanbanView({
         </div>
       </div>
 
-      {/* Expandable ITSM Analytics & Performance KPI Panel */}
+      {/* Expandable Gestion d'Incidents Analytics & Performance KPI Panel */}
       {showAnalyticsPanel && (
         <div style={{ marginBottom: '16px' }}>
           <AnalyticsKPIWidget incidents={visibleIncidents} />

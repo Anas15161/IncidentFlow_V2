@@ -85,7 +85,7 @@ export function AuditTrailView({ auditLogs = MOCK_AUDIT_LOGS, currentUser }) {
 
   return (
     <div className="audit-trail-container animate-fade-in" style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Header Banner  / ITSM */}
+      {/* Header Banner  / Gestion d'Incidents */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
