@@ -76,7 +76,7 @@ export function Sidebar({
             >
               <span className="nav-label">
                 <Clock size={18} />
-                Journal d'Audit ISO 27001
+                Journal d'Audit
               </span>
             </button>
           </>

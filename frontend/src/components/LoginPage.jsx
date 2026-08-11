@@ -44,7 +44,7 @@ export function LoginPage({
           </div>
 
           <h2 className="login-banner-title">
-            Gérez vos incidents de support <span className="highlight-itil">ITIL</span> avec <span className="highlight-fluidite">fluidité</span>.
+            Gérez vos incidents avec <span className="highlight-fluidite">fluidité</span>.
           </h2>
           <p style={{ color: '#cbd5e1', fontSize: '15.5px', lineHeight: '1.6', marginBottom: '32px', textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
             Une plateforme moderne combinant gestion de workflow dynamique, comptes à rebours SLA actifs et communication en temps réel pour vos équipes d'exploitation.

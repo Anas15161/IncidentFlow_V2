@@ -56,7 +56,7 @@ export function DashboardView({
         )}
       </div>
 
-      {/* ITIL Analytics & Performance KPI Widget */}
+      {/* ITSM Analytics & Performance KPI Widget */}
       <AnalyticsKPIWidget incidents={incidents} />
 
       {/* KPI Grid */}

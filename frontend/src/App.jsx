@@ -139,7 +139,7 @@ function App() {
   const [editingCommentContent, setEditingCommentContent] = useState("");
   const [editingCommentTab, setEditingCommentTab] = useState('write');
 
-  // Real-time Audit Trail Log State (ISO 27001 / ITIL)
+  // Real-time Audit Trail Log State ( / ITSM)
   const [auditLogs, setAuditLogs] = useState([
     {
       id: 101,
@@ -645,7 +645,7 @@ function App() {
       normalizedData.forEach((inc, idx) => {
         const code = inc.incidentCode;
         const dateStr = inc.createdAt ? new Date(inc.createdAt).toLocaleString('fr-FR') : new Date(Date.now() - (idx + 1) * 3600000).toLocaleString('fr-FR');
-        
+
         generatedLogs.push({
           id: `log-create-${inc.id || idx}`,
           incidentCode: code,
@@ -1455,14 +1455,14 @@ function App() {
       }
 
       const updatedIncident = await res.json();
-      setIncidents(prev => prev.map(inc => 
+      setIncidents(prev => prev.map(inc =>
         inc.incidentCode === updatedIncident.incidentCode ? updatedIncident : inc
       ));
       setSelectedIncident(updatedIncident);
       setShowAssignSelect(false);
       setSuccessMessage('Incident réassigné avec succès.');
       setTimeout(() => setSuccessMessage(''), 3000);
-      
+
       const newLog = {
         id: Date.now().toString(),
         type: 'UPDATE',
@@ -1843,20 +1843,20 @@ function App() {
     return !searchRoleQuery || nameMatch || descMatch;
   });
 
-  const { 
-    isDragging: isDraggingUpload, 
-    handleDragOver: handleDragOverUpload, 
-    handleDragEnter: handleDragEnterUpload, 
-    handleDragLeave: handleDragLeaveUpload, 
-    handleDrop: handleDropUpload 
+  const {
+    isDragging: isDraggingUpload,
+    handleDragOver: handleDragOverUpload,
+    handleDragEnter: handleDragEnterUpload,
+    handleDragLeave: handleDragLeaveUpload,
+    handleDrop: handleDropUpload
   } = useDragAndDrop(uploadFile);
 
-  const { 
-    isDragging: isDraggingCreate, 
-    handleDragOver: handleDragOverCreate, 
-    handleDragEnter: handleDragEnterCreate, 
-    handleDragLeave: handleDragLeaveCreate, 
-    handleDrop: handleDropCreate 
+  const {
+    isDragging: isDraggingCreate,
+    handleDragOver: handleDragOverCreate,
+    handleDragEnter: handleDragEnterCreate,
+    handleDragLeave: handleDragLeaveCreate,
+    handleDrop: handleDropCreate
   } = useDragAndDrop(setNewIncidentFile);
 
   const {
@@ -1886,9 +1886,9 @@ function App() {
   }
 
   return (
-<div className="app-container">
+    <div className="app-container">
       {/* 1. SIDEBAR */}
-      <Sidebar 
+      <Sidebar
         hasPermission={hasPermission}
         currentView={currentView}
         setCurrentView={setCurrentView}
@@ -1903,7 +1903,7 @@ function App() {
       {/* 2. MAIN VIEWPORT */}
       <main className="main-viewport">
         {/* TOPBAR HEADER */}
-        <Topbar 
+        <Topbar
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           fetchIncidents={fetchIncidents}

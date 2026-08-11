@@ -1,6 +1,6 @@
-# 📊 IncidentFlow - Documentation des Métriques Analytics ITIL & Performance
+# 📊 IncidentFlow - Documentation des Métriques Analytics ITSM & Performance
 
-Bienvenue dans la documentation officielle du **Module d'Analytics ITIL et de Mesure de Performance** d'**IncidentFlow**. Ce document détaille le fonctionnement, les formules de calcul, l'architecture technique et les cas d'usage des indicateurs clés de performance (KPIs) intégrés à la plateforme.
+Bienvenue dans la documentation officielle du **Module d'Analytics ITSM et de Mesure de Performance** d'**IncidentFlow**. Ce document détaille le fonctionnement, les formules de calcul, l'architecture technique et les cas d'usage des indicateurs clés de performance (KPIs) intégrés à la plateforme.
 
 ---
 
@@ -15,7 +15,7 @@ Bienvenue dans la documentation officielle du **Module d'Analytics ITIL et de Me
 
 ---
 
-## ⏱️ 2. Détail des Métriques ITIL
+## ⏱️ 2. Détail des Métriques ITSM
 
 ### 1. MTTR (Temps Moyen de Résolution)
 - **Définition** : Durée moyenne écoulée entre l'ouverture d'un incident et son passage à l'état `Résolu` ou `Clôturé`.
@@ -56,7 +56,7 @@ Toutes les métriques du composant `AnalyticsKPIWidget` respectent scrupuleuseme
 - **Optimisation** : Tous les calculs statistiques complexes sont mémorisés via React `useMemo` pour offrir des performances temps réel sans aucun re-rendu superflu (0 churn JS).
 - **Intégration** :
   - **Dashboard Principal** : Directement visible au sommet de la page Dashboard dans [`App.jsx`](file:///home/anas/Desktop/stage/App/frontend/src/App.jsx).
-  - **Tableau Kanban** : Accessible à la demande via le bouton **`📊 Analytics ITIL`** dans [`KanbanView.jsx`](file:///home/anas/Desktop/stage/App/frontend/src/KanbanView.jsx).
+  - **Tableau Kanban** : Accessible à la demande via le bouton **`📊 Analytics ITSM`** dans [`KanbanView.jsx`](file:///home/anas/Desktop/stage/App/frontend/src/KanbanView.jsx).
 
 ---
-*IncidentFlow - Document de Référence Analytics ITIL & Performance*
+*IncidentFlow - Document de Référence Analytics ITSM & Performance*

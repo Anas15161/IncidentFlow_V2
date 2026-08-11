@@ -85,7 +85,7 @@ export function AuditTrailView({ auditLogs = MOCK_AUDIT_LOGS, currentUser }) {
 
   return (
     <div className="audit-trail-container animate-fade-in" style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Header Banner ISO 27001 / ITIL */}
+      {/* Header Banner  / ITSM */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -102,16 +102,11 @@ export function AuditTrailView({ auditLogs = MOCK_AUDIT_LOGS, currentUser }) {
             <History size={24} className="text-primary-400" />
             Journal d'Audit & Traçabilité Inaltérable (Audit Trail)
           </h1>
-          <p style={{ fontSize: '13px', color: '#94a3b8', margin: '6px 0 0 0' }}>
-            Conformité ISO 27001 / ITIL v4 -- Registre d'audit certifié des évènements, transitions et accès.
-          </p>
+
         </div>
 
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <span style={{ fontSize: '11px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '6px 12px', borderRadius: '20px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <ShieldCheck size={14} />
-            Certifié ISO 27001
-          </span>
+
 
           <button
             className="btn btn-primary"
