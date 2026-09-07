@@ -1,0 +1,22 @@
+# Journal des Erreurs et Solutions (Troubleshooting)
+
+Ce fichier documente les erreurs rencontrées lors de l'exécution de l'application et les solutions apportées.
+
+## 1. Erreur de compilation : "variable uploadsDir is already defined"
+- **Symptôme** : Échec de la commande `mvn compile` ou `mvn spring-boot:run` avec l'erreur : `variable uploadsDir is already defined in method run(java.lang.String...)`.
+- **Cause** : La variable `uploadsDir` a été déclarée deux fois dans la méthode `run()` du fichier `DataInitializer.java` (une fois au début de la méthode et une autre fois à l'intérieur d'un bloc `try`).
+- **Solution** : La variable située dans le bloc `try` (ligne 288) a été renommée en `pathUploadsDir` pour éviter le conflit de noms.
+
+## 2. Erreur de lancement : "Web server failed to start. Port 8080 was already in use"
+- **Symptôme** : Échec du lancement de `mvn spring-boot:run` car le port 8080 est déjà occupé.
+- **Cause** : Le conteneur Docker `incidentflow-backend` tournait déjà en arrière-plan (via docker-compose) et écoutait sur le port 8080 de la machine hôte.
+- **Solution** : Le conteneur en conflit a été arrêté avec la commande `docker stop incidentflow-backend`. Cela a libéré le port 8080, permettant de lancer l'application en local.
+
+## 3. Erreur 500 : Impossible d'accéder à la page de gestion des workflows dynamiques
+- **Symptôme** : Une erreur 500 "Internal Server Error" (avec le message `Unable to connect to Redis`) est survenue lors de l'appel à l'API `/api/workflows`.
+- **Cause** : L'application Spring Boot cherchait à se connecter à Redis sur le port par défaut (6379). Cependant, la base Redis lancée via `docker-compose` mappe son port sur `6380` pour la machine hôte.
+- **Solution** : Ajout explicite de la configuration de Redis dans `backend/src/main/resources/application.properties` pour pointer vers le port 6380 (avec une variable d'environnement pour être compatible avec Docker) :
+  ```properties
+  spring.data.redis.host=${SPRING_DATA_REDIS_HOST:localhost}
+  spring.data.redis.port=${SPRING_DATA_REDIS_PORT:6380}
+  ```

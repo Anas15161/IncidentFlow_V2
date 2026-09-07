@@ -285,9 +285,9 @@ public class DataInitializer implements CommandLineRunner {
             ));
 
             try {
-                java.nio.file.Path uploadsDir = java.nio.file.Paths.get("uploads");
-                java.nio.file.Files.createDirectories(uploadsDir);
-                java.nio.file.Path dummyFile = uploadsDir.resolve("logs_firewall_ssh.txt");
+                java.nio.file.Path pathUploadsDir = java.nio.file.Paths.get("uploads");
+                java.nio.file.Files.createDirectories(pathUploadsDir);
+                java.nio.file.Path dummyFile = pathUploadsDir.resolve("logs_firewall_ssh.txt");
                 if (!java.nio.file.Files.exists(dummyFile)) {
                     java.nio.file.Files.writeString(dummyFile, "2026-08-08 19:30:00 WARN [Firewall] Suspicious SSH login attempts detected from IP 192.168.1.100\n2026-08-08 19:30:05 WARN [Firewall] Suspicious SSH login attempts detected from IP 192.168.1.100\n2026-08-08 19:31:00 ERROR [Firewall] Too many failed attempts. IP 192.168.1.100 blocked temporarily.");
                 }
