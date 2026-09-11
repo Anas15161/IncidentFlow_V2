@@ -1,0 +1,74 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{xcolor}
+\usepackage{geometry}
+\geometry{a4paper, margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{sectsty}
+
+\definecolor{primary}{RGB}{33, 100, 160}
+\definecolor{secondary}{RGB}{200, 50, 50}
+\definecolor{lightbg}{RGB}{245, 245, 250}
+
+\sectionfont{\color{primary}}
+\subsectionfont{\color{secondary}}
+
+\title{\textbf{\Huge Le Rôle du SLA}\\ \large \vspace{0.5cm} \textit{Projet IncidentFlow}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-1.5cm}
+\hrule
+\vspace{1cm}
+
+\section*{Qu'est-ce qu'un SLA (Service Level Agreement) ?}
+Un \textbf{SLA} (Accord de Niveau de Service) est un engagement entre un fournisseur de service et son client. Il définit précisément le \textbf{niveau de qualité attendu} (comme le temps de réponse ou de résolution) et ce qui se passe si ce niveau n'est pas atteint.
+
+\vspace{0.5cm}
+\noindent\fcolorbox{primary}{lightbg}{
+\begin{minipage}{0.97\textwidth}
+\textbf{Astuce - L'Analogie de la livraison de Pizza :}\\
+Si vous commandez une pizza avec la promesse d'une livraison en moins de 30 minutes, sinon elle est gratuite.
+\begin{itemize}[label=--]
+    \item \textbf{Le service :} La livraison de la pizza.
+    \item \textbf{La métrique :} Le temps (moins de 30 minutes).
+    \item \textbf{La pénalité :} La pizza est offerte en cas de retard.
+\end{itemize}
+\end{minipage}}
+
+\vspace{1cm}
+
+\section*{Le Rôle du SLA dans IncidentFlow}
+Dans l'application \textbf{IncidentFlow}, le SLA n'est pas qu'un simple indicateur statistique. C'est le \textbf{moteur de l'urgence} qui garantit la réactivité du support technique. Il est défini par la variable \texttt{sla\_due\_at} et surveillé activement par le composant \texttt{EscalationService}.
+
+\subsection*{1. Fixer une date limite stricte}
+Chaque incident possède un champ \texttt{sla\_due\_at} qui représente l'échéance accordée à l'équipe technique pour prendre en charge ou résoudre le problème avant d'être considéré en retard.
+
+\subsection*{2. Surveillance continue}
+Le système intègre un planificateur automatique qui vérifie en permanence l'état des délais. Il réagit dans deux situations critiques :
+\begin{itemize}[label=\textcolor{primary}{\textbullet}]
+    \item \textbf{La Menace d'expiration :} Il reste moins de 15 minutes avant la date limite SLA et l'incident est toujours inactif (au statut "Nouveau").
+    \item \textbf{Le Dépassement avéré :} La date limite SLA est officiellement dépassée.
+\end{itemize}
+
+\subsection*{3. Le déclenchement de l'Escalade Automatique}
+Lorsqu'un SLA est menacé ou violé, IncidentFlow déclenche instantanément une procédure de crise (l'escalade) comprenant 5 actions correctives :
+\begin{enumerate}[label=\textbf{\arabic*.}]
+    \item \textbf{Montée en priorité :} La priorité de l'incident est forcée à \textbf{"Critical"}.
+    \item \textbf{Réassignation immédiate :} L'incident est retiré à son responsable actuel et transféré automatiquement à un supérieur (\textit{Responsable} ou \textit{Administrateur}).
+    \item \textbf{Marquage du ticket :} L'incident est officiellement marqué avec le statut \texttt{Escalated}.
+    \item \textbf{Traçabilité totale :} Le système injecte un commentaire d'alerte dans le fil de discussion du ticket et trace cette action dans l'historique d'audit (IncidentHistory).
+    \item \textbf{Notification :} Une alerte est simulée/envoyée au nouveau manager pour l'informer de la situation d'urgence.
+\end{enumerate}
+
+\vspace{1.5cm}
+\begin{center}
+    \textit{Document généré pour la documentation et la présentation du projet IncidentFlow.}
+\end{center}
+
+\end{document}

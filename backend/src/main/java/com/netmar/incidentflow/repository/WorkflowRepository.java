@@ -10,4 +10,5 @@ public interface WorkflowRepository extends JpaRepository<Workflow, Long> {
     Optional<Workflow> findByCategory(String category);
     Optional<Workflow> findByCategoryAndActiveTrue(String category);
     java.util.List<Workflow> findByCategoryOrderByVersionDesc(String category);
+    Optional<Workflow> findFirstByActiveTrue();
 }

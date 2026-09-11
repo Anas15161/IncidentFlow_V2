@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Guide de Démonstration DFS</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+        @media print {
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8fafc;
+            color: #1e293b;
+            width: 210mm;
+            height: 297mm;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            padding: 40px 50px;
+            background: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 4px solid #8b5cf6;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #8b5cf6;
+            font-size: 32px;
+            margin: 0 0 10px 0;
+            font-weight: 800;
+        }
+
+        h2 {
+            color: #475569;
+            font-size: 20px;
+            margin: 0;
+            font-weight: 400;
+        }
+
+        .scenario-box {
+            margin-bottom: 25px;
+            padding: 25px;
+            border-radius: 12px;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            position: relative;
+        }
+
+        .scenario-box.red { border-top: 5px solid #ef4444; }
+        .scenario-box.orange { border-top: 5px solid #f97316; }
+        .scenario-box.blue { background-color: #eff6ff; border-top: 5px solid #3b82f6; }
+
+        .scenario-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-top: 0;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .icon {
+            font-size: 24px;
+            margin-right: 12px;
+        }
+
+        .step-list {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+
+        .step-list li {
+            margin-bottom: 10px;
+        }
+
+        .step-list li strong {
+            color: #1e293b;
+        }
+
+        .result-box {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #fee2e2;
+            border-radius: 8px;
+            color: #991b1b;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        
+        .result-box.orange-bg {
+            background-color: #ffedd5;
+            color: #c2410c;
+        }
+
+        .speech-bubble {
+            font-style: italic;
+            font-size: 16px;
+            color: #1e40af;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+            margin-top: 15px;
+        }
+
+        .footer {
+            margin-top: auto;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 14px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Guide de Démonstration</h1>
+            <h2>Scénarios de test en direct : Validation DFS</h2>
+        </header>
+
+        <!-- Scénario 1 : Cul-de-sac -->
+        <div class="scenario-box red">
+            <h2 class="scenario-title"><span class="icon">🚧</span> Test 1 : Le Cul-de-sac (Dead End)</h2>
+            <ol class="step-list">
+                <li><strong>Connectez-vous</strong> à l'application avec un compte Administrateur.</li>
+                <li>Accédez au <strong>Gestionnaire de Workflow</strong> (interface ReactFlow).</li>
+                <li><strong>Ajoutez un nouveau statut</strong> (par exemple <em>"Bloqué"</em> ou <em>"Attente"</em>).</li>
+                <li>Tirez une transition (flèche) depuis <em>"En cours"</em> vers <em>"Bloqué"</em>.</li>
+                <li><strong>IMPORTANT :</strong> Ne créez aucune flèche sortant du statut <em>"Bloqué"</em>.</li>
+                <li>Cliquez sur le bouton <strong>Sauvegarder</strong>.</li>
+            </ol>
+            <div class="result-box">
+                👉 Résultat : L'application rejette la sauvegarde. L'algorithme DFS a détecté un état qui ne mène pas à la fermeture du ticket.
+            </div>
+        </div>
+
+        <!-- Scénario 2 : Boucle Infinie -->
+        <div class="scenario-box orange">
+            <h2 class="scenario-title"><span class="icon">🔄</span> Test 2 : La Boucle Infinie (Cycle)</h2>
+            <ol class="step-list">
+                <li>Toujours dans le <strong>Gestionnaire de Workflow</strong>, isolez deux statuts (ex: <em>"En cours"</em> et <em>"Résolu"</em>).</li>
+                <li>Créez une transition de <em>"En cours"</em> vers <em>"Résolu"</em>.</li>
+                <li>Créez une transition inverse de <em>"Résolu"</em> vers <em>"En cours"</em>.</li>
+                <li>Assurez-vous qu'aucun de ces statuts ne possède de chemin menant à <em>"Fermé"</em>.</li>
+                <li>Cliquez sur le bouton <strong>Sauvegarder</strong>.</li>
+            </ol>
+            <div class="result-box orange-bg">
+                👉 Résultat : L'application rejette la sauvegarde. L'algorithme DFS a détecté qu'un incident serait pris dans une boucle infinie.
+            </div>
+        </div>
+
+        <!-- Conseil d'Animation -->
+        <div class="scenario-box blue">
+            <h2 class="scenario-title"><span class="icon">💡</span> Astuce d'Animation (Slide 9)</h2>
+            <p style="font-size: 16px; margin-top: 0;">Pendant votre démonstration en direct, déroulez le <strong>Test 1</strong> devant le jury et accompagnez-le de ce discours :</p>
+            <div class="speech-bubble">
+                « Regardez, si j'essaie par erreur de créer un statut qui ne mène nulle part et que je sauvegarde... l'algorithme DFS que j'ai implémenté en Backend bloque l'action. Cela protège l'intégrité de la base de données et garantit que nos SLA ne seront jamais faussés par un ticket bloqué. »
+            </div>
+        </div>
+
+        <div class="footer">
+            IncidentFlow - Support de préparation à la soutenance
+        </div>
+    </div>
+</body>
+</html>

@@ -147,8 +147,8 @@ public class WorkflowService {
      */
     @Cacheable(value = "workflows-category", key = "#category + '-active'")
     public Workflow getWorkflowByCategoryAndActive(String category) {
-        return workflowRepository.findByCategoryAndActiveTrue(category)
-                .orElseThrow(() -> new ResourceNotFoundException("Aucun workflow actif trouvé pour la catégorie : " + category));
+        return workflowRepository.findFirstByActiveTrue()
+                .orElseThrow(() -> new ResourceNotFoundException("Aucun workflow actif global n'a été trouvé dans le système."));
     }
 
     /**
@@ -157,9 +157,8 @@ public class WorkflowService {
     public WorkflowTransition validateTransitionForIncident(Incident incident, String fromState, String toState, User user, String comment) {
         Workflow workflow = incident.getWorkflow();
         if (workflow == null) {
-            workflow = workflowRepository.findByCategoryAndActiveTrue(incident.getCategory())
-                    .orElseGet(() -> workflowRepository.findByCategory(incident.getCategory())
-                            .orElseThrow(() -> new InvalidTransitionException("Aucun workflow configuré pour la catégorie : " + incident.getCategory())));
+            workflow = workflowRepository.findFirstByActiveTrue()
+                    .orElseThrow(() -> new InvalidTransitionException("Aucun workflow global actif configuré dans le système."));
         }
 
         Workflow workflowFinal = workflow;
@@ -305,8 +304,8 @@ public class WorkflowService {
      * Valide une transition générale basée uniquement sur la catégorie.
      */
     public WorkflowTransition validateTransition(String category, String fromState, String toState, User user, String comment) {
-        Workflow workflow = workflowRepository.findByCategory(category)
-                .orElseThrow(() -> new InvalidTransitionException("Aucun workflow configuré pour la catégorie : " + category));
+        Workflow workflow = workflowRepository.findFirstByActiveTrue()
+                .orElseThrow(() -> new InvalidTransitionException("Aucun workflow global actif configuré dans le système."));
 
         if (!workflow.isActive()) {
             throw new InvalidTransitionException("Le workflow pour la catégorie " + category + " est désactivé.");

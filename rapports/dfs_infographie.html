@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Validation DFS - Infographie</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+        @media print {
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8fafc;
+            color: #1e293b;
+            width: 210mm;
+            height: 297mm; /* A4 format */
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            padding: 40px 50px;
+            background: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 4px solid #1D4ED8;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #1D4ED8;
+            font-size: 32px;
+            margin: 0 0 10px 0;
+            font-weight: 800;
+        }
+
+        h2 {
+            color: #475569;
+            font-size: 20px;
+            margin: 0;
+            font-weight: 400;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border-radius: 12px;
+            background-color: #f1f5f9;
+            border-left: 6px solid #3b82f6;
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-top: 0;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title span {
+            background-color: #3b82f6;
+            color: white;
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            margin-right: 12px;
+            font-size: 18px;
+        }
+
+        .content-flex {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .text-block {
+            flex: 1;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .visual-block {
+            flex: 1.2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        svg text {
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .highlight {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .success {
+            color: #16a34a;
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        .badge-error { background: #fee2e2; color: #991b1b; }
+        .badge-success { background: #dcfce7; color: #166534; }
+
+        .steps-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .step-box {
+            background: white;
+            border: 1px solid #cbd5e1;
+            padding: 15px;
+            border-radius: 8px;
+            width: 30%;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .step-icon {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .step-box h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #1e293b;
+        }
+        .step-box p {
+            margin: 0;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .footer {
+            margin-top: auto;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 14px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Validation de Workflow par DFS</h1>
+            <h2>Sécuriser le cycle de vie des incidents dans IncidentFlow</h2>
+        </header>
+
+        <!-- Section 1 : Le Problème -->
+        <div class="section" style="border-left-color: #ef4444;">
+            <h2 class="section-title"><span style="background-color: #ef4444;">1</span> Le Problème : Workflows Invalides</h2>
+            <div class="content-flex">
+                <div class="text-block">
+                    <p>Dans un système dynamique, un administrateur peut créer des règles métiers incohérentes par erreur. Si un incident entre dans un de ces parcours, il sera bloqué définitivement.</p>
+                    <p>Deux risques majeurs à éviter :</p>
+                    <ul>
+                        <li><span class="highlight">Cul-de-sac (Dead End) :</span> Un statut qui ne mène vers aucune issue. L'incident ne peut plus être fermé.</li>
+                        <li><span class="highlight">Boucle Infinie (Cycle) :</span> Des statuts qui tournent en rond, empêchant la résolution du ticket et faussant les SLAs.</li>
+                    </ul>
+                </div>
+                <div class="visual-block">
+                    <!-- SVG Graphe Invalide -->
+                    <svg width="280" height="200" viewBox="0 0 280 200">
+                        <defs>
+                            <marker id="arrowRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444" />
+                            </marker>
+                            <marker id="arrowGray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
+                            </marker>
+                        </defs>
+                        <!-- Lignes -->
+                        <line x1="40" y1="50" x2="100" y2="50" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowGray)"/>
+                        <line x1="140" y1="50" x2="200" y2="50" stroke="#ef4444" stroke-width="2" marker-end="url(#arrowRed)"/>
+                        <path d="M 120 70 C 100 120, 140 120, 120 70" stroke="#ef4444" stroke-width="2" fill="none" marker-end="url(#arrowRed)"/>
+                        <line x1="40" y1="70" x2="120" y2="150" stroke="#ef4444" stroke-width="2" marker-end="url(#arrowRed)"/>
+
+                        <!-- Noeuds -->
+                        <rect x="0" y="35" width="40" height="30" rx="5" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+                        <text x="20" y="55" text-anchor="middle" fill="#475569">Ouv.</text>
+
+                        <rect x="100" y="35" width="40" height="30" rx="5" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+                        <text x="120" y="55" text-anchor="middle" fill="#475569">Cours</text>
+
+                        <rect x="200" y="35" width="60" height="30" rx="5" fill="#fee2e2" stroke="#ef4444" stroke-width="2"/>
+                        <text x="230" y="55" text-anchor="middle" fill="#991b1b">Bloqué</text>
+                        <text x="230" y="80" text-anchor="middle" fill="#ef4444" font-size="10" font-weight="normal">(Cul-de-sac)</text>
+
+                        <rect x="100" y="150" width="40" height="30" rx="5" fill="#fee2e2" stroke="#ef4444" stroke-width="2"/>
+                        <text x="120" y="170" text-anchor="middle" fill="#991b1b">Test</text>
+                        <text x="120" y="195" text-anchor="middle" fill="#ef4444" font-size="10" font-weight="normal">(Cycle)</text>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2 : La Solution DFS -->
+        <div class="section" style="border-left-color: #10b981;">
+            <h2 class="section-title"><span style="background-color: #10b981;">2</span> La Solution : Depth-First Search (DFS)</h2>
+            <p>Le Workflow est modélisé sous forme de <strong>Graphe Orienté</strong>. Lors de la sauvegarde, le Backend exécute un algorithme DFS pour valider la topologie du graphe avant toute écriture en base de données.</p>
+            
+            <div class="steps-container">
+                <div class="step-box">
+                    <div class="step-icon">🔍</div>
+                    <h3>Exploration</h3>
+                    <p>Le DFS part du statut initial ("Ouvert") et navigue de nœud en nœud en suivant chaque chemin jusqu'au bout.</p>
+                </div>
+                <div class="step-box">
+                    <div class="step-icon">🚫</div>
+                    <h3>Détection de Cycles</h3>
+                    <p>Il garde en mémoire les états visités sur le chemin actif. S'il retombe sur un état déjà vu, il lève une erreur de boucle infinie.</p>
+                </div>
+                <div class="step-box">
+                    <div class="step-icon">🏁</div>
+                    <h3>Vérification d'Issue</h3>
+                    <p>Chaque chemin exploré DOIT obligatoirement aboutir à un statut final (ex: "Fermé"). Sinon, c'est un cul-de-sac (dead end).</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3 : Résultat -->
+        <div class="section" style="border-left-color: #3b82f6;">
+            <h2 class="section-title"><span>3</span> Graphe Valide & Intégrité Garantie</h2>
+            <div class="content-flex">
+                <div class="text-block">
+                    <p>Si toutes les branches aboutissent à la fermeture sans cycle, le DFS valide le graphe. La transaction de base de données est exécutée, et le nouveau workflow devient actif.</p>
+                    <div class="badge badge-success">✓ Sauvegarde Autorisée</div>
+                    <ul style="margin-top: 15px;">
+                        <li>Assure qu'aucun ticket ne sera bloqué (Conformité ITIL).</li>
+                        <li>Garantit que le calcul des SLAs (MTTR, MTTA) aura toujours un point de fin.</li>
+                    </ul>
+                </div>
+                <div class="visual-block">
+                    <!-- SVG Graphe Valide -->
+                    <svg width="280" height="100" viewBox="0 0 280 100">
+                        <defs>
+                            <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981" />
+                            </marker>
+                        </defs>
+                        <!-- Lignes -->
+                        <line x1="50" y1="50" x2="90" y2="50" stroke="#10b981" stroke-width="2" marker-end="url(#arrowGreen)"/>
+                        <line x1="130" y1="50" x2="170" y2="50" stroke="#10b981" stroke-width="2" marker-end="url(#arrowGreen)"/>
+                        <line x1="210" y1="50" x2="250" y2="50" stroke="#10b981" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+                        <!-- Noeuds -->
+                        <rect x="10" y="35" width="40" height="30" rx="5" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+                        <text x="30" y="55" text-anchor="middle" fill="#475569">Ouvert</text>
+
+                        <rect x="90" y="35" width="40" height="30" rx="5" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+                        <text x="110" y="55" text-anchor="middle" fill="#475569">Cours</text>
+
+                        <rect x="170" y="35" width="40" height="30" rx="5" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+                        <text x="190" y="55" text-anchor="middle" fill="#475569">Résolu</text>
+
+                        <rect x="250" y="35" width="40" height="30" rx="5" fill="#dcfce7" stroke="#10b981" stroke-width="2"/>
+                        <text x="270" y="55" text-anchor="middle" fill="#166534">Fermé</text>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            Infographie d'architecture technique - IncidentFlow
+        </div>
+    </div>
+</body>
+</html>

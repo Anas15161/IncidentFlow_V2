@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   incidentflow-postgres:
@@ -92,6 +91,24 @@ services:
           memory: 512M
         reservations:
           memory: 128M
+
+  incidentflow-frontend:
+    build: ./frontend
+    container_name: incidentflow-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      # You can add API URLs here if your frontend uses them via env vars
+      - VITE_API_URL=http://localhost:8080
+    depends_on:
+      - incidentflow-backend
+    networks:
+      - incidentflow-network
+    restart: unless-stopped
+    volumes:
+      # Optional: Bind mount to reflect code changes live during development
+      - ./frontend:/app
+      - /app/node_modules
 
 volumes:
   postgres-data:
