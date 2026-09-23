@@ -40,6 +40,9 @@ public class Incident {
     @Column(nullable = false)
     private String status; // Nouveau, Assigné, En cours, Résolu, Clôturé
 
+    @Column(name = "process_instance_id")
+    private String processInstanceId;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

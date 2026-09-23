@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Dossier d'Architecture - Transition IAM</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+        
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background-color: #ffffff;
+            color: #333333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px 60px;
+            font-size: 13px;
+        }
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+        }
+        .document-header {
+            border-bottom: 2px solid #1a365d;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        .document-header h1 {
+            color: #1a365d;
+            font-size: 24px;
+            margin: 0 0 5px 0;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .document-header h2 {
+            color: #4a5568;
+            font-size: 15px;
+            margin: 0;
+            font-weight: 400;
+        }
+        .section {
+            margin-bottom: 35px;
+            page-break-inside: avoid;
+        }
+        .section-title {
+            color: #2c5282;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 5px;
+        }
+        p {
+            margin: 0 0 12px 0;
+            text-align: justify;
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .card {
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            padding: 20px;
+        }
+        .card-v1 {
+            border-top: 4px solid #e53e3e;
+            background: #fff5f5;
+        }
+        .card-v2 {
+            border-top: 4px solid #38a169;
+            background: #f0fff4;
+        }
+        .card-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .code-box {
+            background-color: #2d3748;
+            color: #f7fafc;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            margin: 10px 0;
+            white-space: pre;
+        }
+
+        .alert-box {
+            background-color: #ebf8ff;
+            border-left: 4px solid #3182ce;
+            padding: 15px 20px;
+            color: #2b6cb0;
+            margin-top: 20px;
+        }
+        
+        .alert-box.orange {
+            background-color: #fffaf0;
+            border-left: 4px solid #dd6b20;
+            color: #9c4221;
+        }
+
+        .footer {
+            margin-top: 40px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+            text-align: center;
+            font-size: 10px;
+            color: #a0aec0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="document-header">
+        <h1>Dossier d'Architecture Logicielle</h1>
+        <h2>Transition IAM, Gestion du Legacy et Dette Technique</h2>
+    </div>
+
+    <div class="section">
+        <div class="section-title">1. Contexte : Du Monolithe à l'Architecture Fédérée</div>
+        <p>L'un des défis majeurs de la migration vers l'Architecture V2 a été le transfert de la responsabilité sécuritaire de l'application locale vers le système d'Identity and Access Management (IAM) d'entreprise : <strong>Keycloak</strong>.</p>
+        <p>Ce document détaille la transition du modèle de données (Users, Roles, Permissions) et justifie les choix architecturaux concernant le code "Legacy" actuellement maintenu dans le Backend Java.</p>
+    </div>
+
+    <div class="section">
+        <div class="section-title">2. Mutation du Modèle de Données (Avant / Après)</div>
+        
+        <div class="comparison-grid">
+            <div class="card card-v1">
+                <div class="card-title">🚨 Architecture V1 (Monolithe)</div>
+                <p>Le backend Java gérait entièrement la sécurité. La base de données métier contenait :</p>
+                <ul>
+                    <li>Table <code>users</code> (avec mots de passe hashés)</li>
+                    <li>Table <code>roles</code></li>
+                    <li>Table <code>permissions</code></li>
+                    <li>Table de jointure <code>role_permissions</code></li>
+                </ul>
+            </div>
+            <div class="card card-v2">
+                <div class="card-title">✅ Architecture V2 Cible (IAM)</div>
+                <p>Keycloak prend le relais exclusif :</p>
+                <ul>
+                    <li><strong>Suppression</strong> totale des tables <code>roles</code> et <code>permissions</code>.</li>
+                    <li>La table <code>users</code> est convertie en <strong>Proxy (Miroir)</strong> : elle perd sa colonne <i>password</i> et son ID devient un UUID lié à Keycloak.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">3. Le Modèle "User Proxy" (La Jointure Métier)</div>
+        <p>Pourquoi la table <code>users</code> ne disparaît-elle pas totalement ?</p>
+        <p>Bien que Keycloak gère l'authentification, le moteur métier (Spring Boot / PostgreSQL) a besoin d'établir des relations (Foreign Keys) pour savoir <i>"À qui appartient l'incident N°45 ?"</i>. Il est impossible de faire une jointure SQL directement avec la base de données interne de Keycloak.</p>
+        <p>La solution architecturale est la création d'une table miroir réduite à sa plus simple expression :</p>
+        <div class="code-box">@Entity
+@Table(name = "users")
+public class UserProxy {
+    @Id
+    private String id; // UUID venant de Keycloak
+    
+    private String email; // Uniquement pour l'affichage Frontend
+}</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">4. Justification de la Dette Technique (Le Code Actuel)</div>
+        <div class="alert-box orange">
+            <strong>Observation :</strong> Le fichier <code>User.java</code> actuel contient toujours les attributs <code>password</code> et <code>Role</code>, et les entités <code>Role.java</code> et <code>Permission.java</code> sont toujours présentes dans le code source.
+        </div>
+        <p><strong>L'Argumentaire Architectural :</strong> Dans le cadre du cycle de vie du logiciel (SDLC), une refonte ne casse jamais l'existant de manière abrupte.</p>
+        <p>Ce code est aujourd'hui classifié comme <strong>Dette Technique / Code Legacy</strong>. La priorité absolue de la Release V2 était de sécuriser le périmètre externe (Frontend et Endpoints API) en branchant le SSO Keycloak. Les attributs locaux de mot de passe et de rôles sont de fait <strong>obsolètes</strong> et ignorés par le nouveau flux de sécurité (OAuth2/JWT).</p>
+        <p>La prochaine étape d'ingénierie (Next Release) consistera à effectuer un nettoyage (Refactoring) du code mort, à exécuter des scripts de migration de données (Liquibase/Flyway) pour purger les anciennes tables de rôles, et à basculer définitivement sur l'entité <code>UserProxy</code>.</p>
+    </div>
+
+    <div class="footer">
+        Dossier Technique V2 — Gestion de la Dette Technique & IAM
+    </div>
+</div>
+
+</body>
+</html>

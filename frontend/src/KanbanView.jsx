@@ -9,6 +9,7 @@ import { AnalyticsKPIWidget } from './AnalyticsKPIWidget';
 
 const DEFAULT_COLUMNS = [
   { name: 'Nouveau', color: '#3b82f6', badgeBg: 'rgba(59, 130, 246, 0.12)', badgeText: '#2563eb', wipLimit: 10 },
+  { name: 'Assigné', color: '#8b5cf6', badgeBg: 'rgba(139, 92, 246, 0.12)', badgeText: '#7c3aed', wipLimit: 15 },
   { name: 'En cours', color: '#f59e0b', badgeBg: 'rgba(245, 158, 11, 0.12)', badgeText: '#d97706', wipLimit: 5 },
   { name: 'Résolu', color: '#10b981', badgeBg: 'rgba(16, 185, 129, 0.12)', badgeText: '#059669', wipLimit: 15 },
   { name: 'Clôturé', color: '#6b7280', badgeBg: 'rgba(107, 114, 128, 0.12)', badgeText: '#4b5563', wipLimit: 999 }
@@ -783,10 +784,10 @@ export function KanbanView({
             <div className="kanban-icon-badge">
               <Kanban size={22} className="text-white" />
             </div>
-            Tableau Kanban / Roadmap Jira
+            Tableau Kanban V2 (Edition Flowable)
           </h1>
-          <p className="page-subtitle">
-            Suivi visuel interactif et pilotage des flux de résolution d'incidents.
+          <p className="page-subtitle" style={{ color: '#059669', fontWeight: 'bold' }}>
+            ⚡ 100% Orchestré par le Moteur Flowable BPMN 2.0 (Fin du DFS Maison)
           </p>
         </div>
 

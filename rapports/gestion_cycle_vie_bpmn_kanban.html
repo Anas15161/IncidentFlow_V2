@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Impact de l'Évolution du Workflow BPMN sur le Kanban & Gestion du Cycle de Vie</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        @page {
+            size: A4;
+            margin: 18mm 14mm 18mm 14mm;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #ffffff;
+            color: #1e293b;
+            line-height: 1.55;
+            margin: 0;
+            padding: 20px 35px;
+            font-size: 12px;
+        }
+
+        .header-container {
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .header-title h1 {
+            color: #0f172a;
+            font-size: 18px;
+            margin: 0 0 4px 0;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            text-transform: uppercase;
+        }
+
+        .header-title h2 {
+            color: #475569;
+            font-size: 12px;
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .header-meta {
+            text-align: right;
+            font-size: 10.5px;
+            color: #64748b;
+        }
+
+        .section {
+            margin-bottom: 22px;
+            page-break-inside: avoid;
+        }
+
+        .section-title {
+            color: #0f172a;
+            font-size: 13.5px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .section-number {
+            color: #2563eb;
+            font-weight: 700;
+        }
+
+        p {
+            margin: 0 0 8px 0;
+            text-align: justify;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 11.5px;
+        }
+
+        .data-table th, .data-table td {
+            border: 1px solid #cbd5e1;
+            padding: 7px 10px;
+            text-align: left;
+        }
+
+        .data-table th {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            font-weight: 600;
+        }
+
+        .data-table tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        .code-block {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10.5px;
+            margin: 8px 0;
+            white-space: pre;
+            overflow-x: auto;
+            border-left: 4px solid #2563eb;
+        }
+
+        .code-comment { color: #64748b; }
+        .code-keyword { color: #f472b6; font-weight: bold; }
+        .code-string { color: #38bdf8; }
+
+        .scenario-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 10px 0;
+        }
+
+        .scenario-card {
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            border-radius: 6px;
+            padding: 12px 14px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+
+        .scenario-card.warning {
+            border-top: 3px solid #f59e0b;
+            background: #fffbeb;
+        }
+
+        .scenario-card.solution {
+            border-top: 3px solid #10b981;
+            background: #f0fdf4;
+        }
+
+        .scenario-title {
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .warning .scenario-title { color: #b45309; }
+        .solution .scenario-title { color: #047857; }
+
+        .scenario-desc {
+            font-size: 11px;
+            color: #334155;
+            margin: 0;
+            line-height: 1.45;
+        }
+
+        .callout-box {
+            background-color: #f8fafc;
+            border-left: 4px solid #2563eb;
+            padding: 10px 14px;
+            margin: 10px 0;
+            font-style: italic;
+            color: #334155;
+            font-size: 11.5px;
+        }
+
+        .footer {
+            margin-top: 25px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 9.5px;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-container">
+        <div class="header-title">
+            <h1>Rapport d'Architecture Logicielle</h1>
+            <h2>Évolution Dynamique du BPMN : Impact Frontend & Gestion du Cycle de Vie des Données</h2>
+        </div>
+        <div class="header-meta">
+            Projet : <strong>IncidentFlow V2</strong><br>
+            Auteur : Anas Benhammou<br>
+            Axe : BPMN Agility & Instance Migration
+        </div>
+    </div>
+
+    <!-- Section 1 : Comportement du Moteur Flowable -->
+    <div class="section">
+        <div class="section-title"><span class="section-number">1.</span> Modification du Modèle XML : Comportement du Moteur Flowable</div>
+        <p>
+            Lorsque le schéma XML BPMN 2.0 est modifié (soit par renommage d'un statut, soit par ajout d'une nouvelle tâche utilisateur <code>&lt;userTask&gt;</code>) et réinjecté dans l'application, le moteur d'exécution réagit de façon **strictement dynamique** :
+        </p>
+        <ul>
+            <li><strong>Incrémentation de Version (Versioning) :</strong> Flowable ne remplace pas l'ancienne définition ; il crée une nouvelle version (<code>version_ = 2</code>) dans la table <code>flowable.act_re_procdef</code>.</li>
+            <li><strong>Propagation Automatique du Statut :</strong> Dans le service applicatif (<code>IncidentService.java</code>), la méthode de transition interroge la tâche active retournée par le moteur :
+                <div class="code-block"><span class="code-comment">// Récupération dynamique du nom configuré dans le XML</span>
+Task nextTask = taskService.createTaskQuery().processInstanceId(processInstanceId).singleResult();
+incident.setStatus(nextTask.getName()); <span class="code-comment">// Ex: "En attente validation", "En cours"</span></div>
+            </li>
+            <li><strong>Persistance Métier Immédiate :</strong> Le champ <code>status</code> de la table <code>incidentflow.incidents</code> prend instantanément la valeur littérale déclarée dans le nouvel élément BPMN.</li>
+        </ul>
+    </div>
+
+    <!-- Section 2 : Impact sur l'Interface Frontend (Kanban) -->
+    <div class="section">
+        <div class="section-title"><span class="section-number">2.</span> Impact sur l'Interface Utilisateur (Tableau Kanban React)</div>
+        <p>
+            Bien que le moteur backend absorbe nativement toute modification de workflow, l'interface graphique utilisateur (IHM) présente des comportements contrastés selon le degré de couplage :
+        </p>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Type d'Évolution XML</th>
+                    <th>Comportement Moteur Flowable</th>
+                    <th>Comportement Actuel du Kanban</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Renommage d'un état existant</strong><br><em>(ex: "En cours" → "En investigation")</em></td>
+                    <td>Parfaitement supporté. La nouvelle tâche porte le libellé mis à jour.</td>
+                    <td>Si le libellé ne correspond plus aux 5 colonnes par défaut, la carte est déroutée vers la colonne de secours <code>Autres</code>.</td>
+                </tr>
+                <tr>
+                    <td><strong>Ajout d'un nouvel état</strong><br><em>(ex: "En attente client")</em></td>
+                    <td>Création de la nouvelle étape et routage des tokens d'exécution selon les <code>&lt;sequenceFlow&gt;</code>.</td>
+                    <td>L'incident est persisté avec succès mais reste confiné dans la colonne <code>Autres</code> tant que la colonne n'est pas instanciée graphiquement.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Section 3 : Scénarios d'Amélioration & Défis d'Ingénierie -->
+    <div class="section">
+        <div class="section-title"><span class="section-number">3.</span> Piste d'Amélioration : Le Kanban 100% Dynamique</div>
+        <p>
+            Pour éliminer tout couplage statique, l'amélioration recommandée consiste à transformer le composant Kanban en un **tableau entièrement piloté par le BPMN (Data-Driven Kanban)** :
+        </p>
+        <p>
+            Au lieu d'utiliser un tableau de colonnes figé (<code>DEFAULT_COLUMNS</code>), le Frontend interroge au montage un endpoint dédié (ex: <code>GET /api/workflows/active/states</code>) qui extrait la liste ordonnée des <code>&lt;userTask&gt;</code> directement depuis le XML Flowable. Chaque tâche génère automatiquement sa colonne, sa couleur thématique et sa limite WIP (Work In Progress).
+        </p>
+    </div>
+
+    <!-- Section 4 : La Problématique des Incidents Déjà Créés (Legacy Instances) -->
+    <div class="section">
+        <div class="section-title"><span class="section-number">4.</span> Risques & Effets de Bord : Que Faire des Incidents Déjà Créés ?</div>
+        <p>
+            Le déploiement d'un Kanban dynamique introduit un défi classique d'ingénierie logicielle : <strong>la gestion des données résiduelles créées sous l'ancien schéma</strong>.
+        </p>
+
+        <div class="scenario-grid">
+            <div class="scenario-card warning">
+                <div class="scenario-title">⚠️ Risque 1 : Les "Tickets Orphelins"</div>
+                <p class="scenario-desc">
+                    Si un état est supprimé ou renommé (ex: "Assigné" devient "En prise en charge"), les anciens tickets ouverts restent enregistrés avec le statut "Assigné". Si la colonne disparaît du Kanban dynamique, ces tickets deviennent invisibles ou inaccessibles.
+                </p>
+            </div>
+            <div class="scenario-card warning">
+                <div class="scenario-title">⚠️ Risque 2 : Désynchronisation BPMN</div>
+                <p class="scenario-desc">
+                    L'instance Flowable d'un ancien ticket est liée à la Version 1 du processus. Si l'opérateur tente de faire glisser la carte vers un nouvel état qui n'existait pas en V1, le moteur rejette la transition car la flèche de transition est introuvable.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 5 : Solutions Architecturales Recommandées -->
+    <div class="section">
+        <div class="section-title"><span class="section-number">5.</span> Solutions Architecturales & Bonnes Pratiques de Migration</div>
+        
+        <div class="scenario-grid">
+            <div class="scenario-card solution">
+                <div class="scenario-title">✅ Stratégie A : Coexistence de Versions (Version Routing)</div>
+                <p class="scenario-desc">
+                    <strong>Approche standard en production :</strong> Les incidents déjà ouverts achèvent leur cycle de vie sous la définition V1 avec leurs colonnes d'origine. Seuls les incidents créés après la mise en production empruntent le nouveau modèle V2.
+                </p>
+            </div>
+            <div class="scenario-card solution">
+                <div class="scenario-title">✅ Stratégie B : Migration d'Instances Active (Flowable Migration API)</div>
+                <p class="scenario-desc">
+                    Utilisation de l'API native de Flowable (<code>ProcessInstanceMigrationBuilder</code>) pour exécuter un script de migration en base de données qui mappe explicitement l'ancienne tâche <code>taskNouveau</code> vers la nouvelle tâche <code>taskValidation</code>.
+                </p>
+            </div>
+        </div>
+
+        <div class="callout-box">
+            <strong>Recommandation pour la Soutenance :</strong><br>
+            "Démontrer que rendre les colonnes du Kanban dynamiques est la cible idéale, mais souligner avec maturité qu'en entreprise, toute modification d'un schéma de workflow impose une politique de migration d'instances pour éviter de corrompre le cycle de vie des dossiers en cours."
+        </div>
+    </div>
+
+    <div class="footer">
+        <span>IncidentFlow V2 — Gestion du Cycle de Vie BPMN & Dynamisme IHM</span>
+        <span>Dossier Technique & Perspectives d'Amélioration</span>
+    </div>
+
+</body>
+</html>

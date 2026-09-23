@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiche Synthèse Oral & Règles BPMN 2.0 - IncidentFlow</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 7mm 9mm;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #0f172a;
+            background-color: #ffffff;
+            font-size: 8.5pt;
+            line-height: 1.38;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #0284c7;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+        }
+
+        .header-left h1 {
+            font-size: 13.5pt;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
+        }
+
+        .header-left p {
+            font-size: 7.8pt;
+            color: #475569;
+            font-weight: 600;
+        }
+
+        .badge-exam {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 7.5pt;
+            padding: 4px 9px;
+            border-radius: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        /* Hero Quote Section */
+        .oral-pitch-card {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 1.5px solid #38bdf8;
+            border-radius: 6px;
+            padding: 8px 11px;
+            margin-bottom: 8px;
+        }
+
+        .oral-pitch-title {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 8.2pt;
+            font-weight: 800;
+            color: #0369a1;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 3px;
+        }
+
+        .oral-pitch-quote {
+            font-size: 9.8pt;
+            font-weight: 800;
+            color: #0c4a6e;
+            line-height: 1.35;
+            font-style: italic;
+            border-left: 3px solid #0284c7;
+            padding-left: 9px;
+            margin: 3px 0 5px 0;
+        }
+
+        .oral-pitch-bullets {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px dashed #bae6fd;
+            font-size: 7.5pt;
+            color: #075985;
+        }
+
+        .oral-pitch-bullets span {
+            font-weight: 600;
+        }
+
+        /* Rule Cards */
+        .section-title {
+            font-size: 9pt;
+            font-weight: 800;
+            color: #0f172a;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .section-title::before {
+            content: "";
+            display: inline-block;
+            width: 3.5px;
+            height: 10px;
+            background-color: #0284c7;
+            border-radius: 2px;
+        }
+
+        .rule-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 6px 10px;
+            margin-bottom: 6px;
+            background-color: #ffffff;
+        }
+
+        .rule-card.rule-1 { border-left: 3.5px solid #2563eb; }
+        .rule-card.rule-2 { border-left: 3.5px solid #7c3aed; }
+        .rule-card.rule-3 { border-left: 3.5px solid #059669; }
+
+        .rule-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3px;
+        }
+
+        .rule-tag {
+            font-size: 7pt;
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 1.5px 6px;
+            border-radius: 3px;
+            letter-spacing: 0.03em;
+        }
+
+        .rule-1 .rule-tag { background-color: #eff6ff; color: #1d4ed8; }
+        .rule-2 .rule-tag { background-color: #f5f3ff; color: #6d28d9; }
+        .rule-3 .rule-tag { background-color: #ecfdf5; color: #047857; }
+
+        .rule-title {
+            font-size: 8.8pt;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .rule-body {
+            font-size: 8pt;
+            color: #334155;
+            line-height: 1.35;
+        }
+
+        .rule-body ul {
+            list-style: none;
+            padding-left: 0;
+            margin-top: 2px;
+        }
+
+        .rule-body li {
+            position: relative;
+            padding-left: 12px;
+            margin-bottom: 2.5px;
+        }
+
+        .rule-body li::before {
+            content: "•";
+            position: absolute;
+            left: 2px;
+            color: #0284c7;
+            font-weight: 800;
+        }
+
+        .code-pill {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 7.5pt;
+            background-color: #f1f5f9;
+            color: #0f172a;
+            padding: 1px 4px;
+            border-radius: 3px;
+            border: 1px solid #cbd5e1;
+            font-weight: 700;
+        }
+
+        .palette-preview {
+            display: inline-flex;
+            gap: 3px;
+            margin-top: 2px;
+            vertical-align: middle;
+        }
+
+        .palette-badge {
+            font-size: 6.8pt;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 3px;
+            border-width: 1px;
+            border-style: solid;
+        }
+
+        .badge-red { background-color: #fef2f2; color: #dc2626; border-color: #fecaca; }
+        .badge-amber { background-color: #fffbeb; color: #d97706; border-color: #fde68a; }
+        .badge-blue { background-color: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+        .badge-emerald { background-color: #ecfdf5; color: #059669; border-color: #a7f3d0; }
+        .badge-slate { background-color: #f8fafc; color: #475569; border-color: #cbd5e1; }
+        .badge-purple { background-color: #faf5ff; color: #7c3aed; border-color: #e9d5ff; }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 7.6pt;
+            margin-top: 4px;
+            margin-bottom: 6px;
+        }
+
+        .comparison-table th {
+            background-color: #0f172a;
+            color: #ffffff;
+            text-align: left;
+            padding: 4px 7px;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 7pt;
+            letter-spacing: 0.03em;
+        }
+
+        .comparison-table td {
+            padding: 3.5px 7px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
+            line-height: 1.3;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        .tag-bad {
+            color: #b91c1c;
+            font-weight: 700;
+        }
+
+        .tag-good {
+            color: #047857;
+            font-weight: 700;
+        }
+
+        /* Demo Checklist */
+        .checklist-card {
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 6px 9px;
+        }
+
+        .checklist-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px 10px;
+            font-size: 7.5pt;
+            color: #334155;
+            line-height: 1.3;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 5px;
+        }
+
+        .checklist-box {
+            display: inline-block;
+            width: 11px;
+            height: 11px;
+            border: 1.5px solid #0284c7;
+            border-radius: 2.5px;
+            margin-top: 1.5px;
+            flex-shrink: 0;
+            background-color: #ffffff;
+        }
+
+        .footer {
+            margin-top: 6px;
+            padding-top: 4px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 7pt;
+            color: #64748b;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- En-tête -->
+    <div class="header">
+        <div class="header-left">
+            <h1>Mémento Soutenance & Règles du Workflow BPMN</h1>
+            <p>Plateforme IncidentFlow V2 • Architecture Pilotée par les Métadonnées (Metadata-Driven Architecture)</p>
+        </div>
+        <div class="badge-exam">Fiche Imprimable 1 Page A4</div>
+    </div>
+
+    <!-- Le Pitch Magistral Oral -->
+    <div class="oral-pitch-card">
+        <div class="oral-pitch-title">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+            En Résumé pour l'Oral (Phrase Clé à Dire au Professeur / Jury)
+        </div>
+        <div class="oral-pitch-quote">
+            « C'est un moteur piloté par les métadonnées (Metadata-Driven Architecture) : le code Java ne connaît pas les statuts à l'avance ; il projette dynamiquement le modèle BPMN dans l'interface et dans la base de données. »
+        </div>
+        <div class="oral-pitch-bullets">
+            <span><strong>1. Zéro Statut Hardcodé :</strong> Aucun Enum Java rigide</span>
+            <span><strong>2. Hot-Reloading :</strong> Nouveau cycle de vie sans recompiler</span>
+            <span><strong>3. Continuité d'Audit :</strong> Traçabilité native dans Flowable BDD</span>
+        </div>
+    </div>
+
+    <!-- Les 3 Règles d'Or Fondamentales -->
+    <div class="section-title">Les 3 Règles de Conception Fondamentales du Workflow</div>
+
+    <!-- RÈGLE 1 -->
+    <div class="rule-card rule-1">
+        <div class="rule-header">
+            <div class="rule-title">1. Règle de Syntaxe BPMN 2.0 Standard (Intégrité Topologique)</div>
+            <span class="rule-tag">Moteur Flowable</span>
+        </div>
+        <div class="rule-body">
+            <ul>
+                <li><strong>Identifiant fixe de processus :</strong> Le fichier XML doit obligatoirement déclarer <span class="code-pill">&lt;process id="incidentWorkflow"&gt;</span>. Cela permet à Flowable de versionner automatiquement les déploiements (<span class="code-pill">VERSION_</span>) dans <span class="code-pill">flowable.act_re_procdef</span> sans rupture de clé.</li>
+                <li><strong>Graphe continu sans orphelins :</strong> Le schéma doit posséder un <span class="code-pill">StartEvent</span>, au moins une <span class="code-pill">UserTask</span> ou un état terminal <span class="code-pill">EndEvent</span>, et des <span class="code-pill">SequenceFlow</span> directionnels reliant tous les nœuds pour garantir l'avancement déterministe du jeton d'exécution.</li>
+                <li><strong>Normalisation automatique :</strong> Le backend Spring Boot valide et normalise l'extension en <span class="code-pill">.bpmn20.xml</span> même si le navigateur l'a renommée lors du téléchargement.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- RÈGLE 2 -->
+    <div class="rule-card rule-2">
+        <div class="rule-header">
+            <div class="rule-title">2. Règle d'Attribution Dynamique des Couleurs UI (Harmonie Visuelle)</div>
+            <span class="rule-tag">Frontend Adaptatif</span>
+        </div>
+        <div class="rule-body">
+            <ul>
+                <li><strong>Distribution modulaire :</strong> Pour que l'interface reste toujours esthétique et lisible sans intervention humaine, le backend applique un algorithme de distribution dynamique calculé par : <span class="code-pill">colors[i % colors.length]</span>.</li>
+                <li><strong>Génération automatique des badges Tailwind :</strong> Chaque état hérite automatiquement d'une palette cohérente (fond, texte, bordure) partagée entre le Kanban, le Stepper et le graphe React Flow :
+                    <div class="palette-preview">
+                        <span class="palette-badge badge-red">1. Rouge</span>
+                        <span class="palette-badge badge-amber">2. Ambre</span>
+                        <span class="palette-badge badge-blue">3. Bleu</span>
+                        <span class="palette-badge badge-emerald">4. Émeraude</span>
+                        <span class="palette-badge badge-slate">5. Ardoise</span>
+                        <span class="palette-badge badge-purple">6. Pourpre</span>
+                    </div>
+                </li>
+                <li><strong>Zéro retouche CSS :</strong> Un nouvel état (« Inspection Terrain », « En Attente Fournisseur ») est stylisé instantanément dès l'ingestion XML.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- RÈGLE 3 -->
+    <div class="rule-card rule-3">
+        <div class="rule-header">
+            <div class="rule-title">3. Règle de Persistance Métier & Préservation d'Historique</div>
+            <span class="rule-tag">PostgreSQL Multi-Schémas</span>
+        </div>
+        <div class="rule-body">
+            <ul>
+                <li><strong>Remplacement atomique du workflow :</strong> Lors d'une synchronisation, les nouveaux états remplacent les anciens dans la table métier <span class="code-pill">incidentflow.workflow_states</span> et le cache Redis est purgé via <span class="code-pill">@CacheEvict</span>.</li>
+                <li><strong>Préservation intégrale des incidents passés :</strong> L'historique des incidents déjà créés ou clôturés reste intact et inaltéré grâce au schéma d'audit Flowable (<span class="code-pill">flowable.act_hi_taskinst</span>) et à l'historique d'audit applicatif (<span class="code-pill">incidentflow.incident_history</span>).</li>
+                <li><strong>Soft Foreign Key :</strong> <span class="code-pill">incidents.process_instance_id</span> lie l'incident au moteur Flowable sans contrainte SQL <span class="code-pill">FOREIGN KEY</span> rigide inter-schémas, garantissant l'indépendance de migration.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Tableau Comparatif Rapide -->
+    <div class="section-title">Architecture Classique Rigide vs IncidentFlow V2 Metadata-Driven</div>
+    <table class="comparison-table">
+        <thead>
+            <tr>
+                <th style="width: 25%;">Critère d'Évaluation</th>
+                <th style="width: 37.5%;">Approche Traditionnelle (Rigide)</th>
+                <th style="width: 37.5%;">IncidentFlow V2 (Metadata-Driven)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Cycle de Vie & Statuts</strong></td>
+                <td><span class="tag-bad">✕</span> Enums Java figés. Recompilation et redémarrage obligatoires.</td>
+                <td><span class="tag-good">✓</span> Modèle BPMN XML ingéré à chaud par Flowable en BDD.</td>
+            </tr>
+            <tr>
+                <td><strong>Interface Kanban / UI</strong></td>
+                <td><span class="tag-bad">✕</span> Colonnes React codées en dur, désynchronisées du backend.</td>
+                <td><span class="tag-good">✓</span> Colonnes, badges et graphe React Flow projetés du XML.</td>
+            </tr>
+            <tr>
+                <td><strong>Traçabilité & Audit</strong></td>
+                <td><span class="tag-bad">✕</span> Historique fragile ou perdu lors du renommage d'un statut.</td>
+                <td><span class="tag-good">✓</span> Schéma d'audit Flowable (<span class="code-pill">act_hi_*</span>) infalsifiable et pérenne.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Checklist Démonstration -->
+    <div class="checklist-card">
+        <div style="font-weight: 800; font-size: 7.8pt; color: #0f172a; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.03em;">
+            Checklist Démonstration Directe devant le Professeur
+        </div>
+        <div class="checklist-grid">
+            <div class="checklist-item">
+                <span class="checklist-box"></span>
+                <div><strong>1. Glisser-Déposer le XML :</strong> Dans l'onglet <em>Workflow Config</em>, importer un nouveau fichier BPMN (ex: avec un statut renommé ou ajouté).</div>
+            </div>
+            <div class="checklist-item">
+                <span class="checklist-box"></span>
+                <div><strong>2. Vérifier la BDD :</strong> Montrer la requête <span class="code-pill">SELECT * FROM incidentflow.workflow_states;</span> : les colonnes ont changé automatiquement !</div>
+            </div>
+            <div class="checklist-item">
+                <span class="checklist-box"></span>
+                <div><strong>3. Montrer le Kanban :</strong> Ouvrir le Kanban : colonnes et couleurs sont recalculées instantanément sans recharger la page.</div>
+            </div>
+            <div class="checklist-item">
+                <span class="checklist-box"></span>
+                <div><strong>4. Conclure avec la phrase clé :</strong> Énoncer le pitch : <em>« Moteur piloté par les métadonnées (Metadata-Driven) »</em>.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <span>IncidentFlow V2 • Soutenance de Projet • Plateforme Orchestrée Flowable 7.0.1 + Spring Boot 3 + PostgreSQL</span>
+        <span>Page 1 / 1 • Format A4 Imprimable</span>
+    </div>
+
+</body>
+</html>

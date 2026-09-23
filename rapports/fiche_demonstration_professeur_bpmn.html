@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Fiche de Démonstration Technique - Parcours XML BPMN (Code & Base de Données)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        @page {
+            size: A4 portrait;
+            margin: 15mm 15mm 15mm 15mm;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: #ffffff;
+            color: #1e293b;
+            line-height: 1.5;
+            margin: 0;
+            padding: 10px 25px;
+            font-size: 11.5px;
+        }
+
+        .header {
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 10px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .header h1 {
+            font-size: 17px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0 0 3px 0;
+            text-transform: uppercase;
+            letter-spacing: -0.3px;
+        }
+
+        .header h2 {
+            font-size: 11.5px;
+            font-weight: 500;
+            color: #475569;
+            margin: 0;
+        }
+
+        .meta {
+            text-align: right;
+            font-size: 10px;
+            color: #64748b;
+        }
+
+        .section-title {
+            background-color: #f1f5f9;
+            border-left: 4px solid #2563eb;
+            color: #0f172a;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 6px 12px;
+            margin: 14px 0 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sub-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #1e40af;
+            margin: 10px 0 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sub-badge {
+            background: #2563eb;
+            color: #fff;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+
+        .code-block {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            padding: 9px 12px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            line-height: 1.45;
+            margin: 6px 0;
+            white-space: pre;
+            overflow-x: hidden;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .sql-block {
+            background-color: #091322;
+            color: #38bdf8;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10.5px;
+            line-height: 1.4;
+            margin: 4px 0;
+            border-left: 3px solid #10b981;
+            white-space: pre;
+        }
+
+        .speech-box {
+            background-color: #eff6ff;
+            border-left: 3px solid #2563eb;
+            padding: 7px 12px;
+            margin: 6px 0 10px 0;
+            color: #1e3a8a;
+            font-size: 11px;
+            font-style: italic;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .result-box {
+            background-color: #f0fdf4;
+            border-left: 3px solid #10b981;
+            padding: 5px 10px;
+            margin: 4px 0 10px 0;
+            color: #065f46;
+            font-size: 10.5px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .synthesis-box {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f8fafc;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-top: 14px;
+            border: 1px solid #334155;
+        }
+
+        .synthesis-box h3 {
+            margin: 0 0 6px 0;
+            font-size: 12px;
+            color: #60a5fa;
+            font-weight: 700;
+        }
+
+        .synthesis-box p {
+            margin: 0;
+            font-size: 11px;
+            line-height: 1.5;
+            color: #cbd5e1;
+        }
+
+        .footer {
+            margin-top: 14px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 6px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: #94a3b8;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <div>
+            <h1>Fiche de Démonstration Technique : Intégration BPMN</h1>
+            <h2>Traçabilité du fichier XML du Code Java jusqu'aux Tables PostgreSQL</h2>
+        </div>
+        <div class="meta">
+            Projet : <strong>IncidentFlow V2</strong><br>
+            Auteur : <strong>Anas Benhammou</strong><br>
+            Support de Démonstration Enseignant / Jury
+        </div>
+    </div>
+
+    <!-- VOLET 1 : LE CODE -->
+    <div class="section-title">
+        <span>VOLET 1 : Comment le fichier XML est intégré dans le Backend (Le Code Java)</span>
+        <span style="font-size: 10px; font-weight: 500; color: #475569;">Spring Boot & Flowable Engine</span>
+    </div>
+    <p style="margin: 0 0 8px 0; color: #475569; font-size: 11px;">
+        Le traitement du fichier XML s'articule en trois étapes précises dans le code source :
+    </p>
+
+    <!-- Etape A -->
+    <div class="sub-title">
+        <span class="sub-badge">Étape A</span>
+        L'Ingestion du XML par Flowable (WorkflowController.java : ligne 22)
+    </div>
+    <div class="code-block"><span style="color:#f472b6;">@PostMapping</span>(<span style="color:#34d399;">"/deploy-flowable"</span>)
+<span style="color:#f472b6;">public</span> ResponseEntity&lt;?&gt; <span style="color:#60a5fa;">deployFlowableProcess</span>(<span style="color:#f472b6;">@RequestParam</span>(<span style="color:#34d399;">"file"</span>) MultipartFile file) {
+    <span style="color:#64748b;">// 1. On donne le fichier XML brut au moteur Flowable</span>
+    Deployment deployment = repositoryService.<span style="color:#60a5fa;">createDeployment</span>()
+            .<span style="color:#60a5fa;">addInputStream</span>(<span style="color:#34d399;">"incident_workflow_v2.bpmn20.xml"</span>, file.getInputStream())
+            .<span style="color:#60a5fa;">name</span>(<span style="color:#34d399;">"Dynamic Deployment from UI"</span>)
+            .<span style="color:#60a5fa;">deploy</span>(); <span style="color:#64748b;">// &lt;-- Flowable valide le XML, incrémente la version et persiste en BDD</span>
+
+    <span style="color:#64748b;">// 2. On synchronise immédiatement notre application avec le nouveau modèle</span>
+    workflowService.<span style="color:#60a5fa;">syncWithFlowable</span>(repositoryService);
+    <span style="color:#f472b6;">return</span> ResponseEntity.ok(<span style="color:#34d399;">"Déploiement réussi"</span>);
+}</div>
+    <div class="speech-box">
+        <strong>Ce que vous dites au professeur :</strong><br>
+        « Monsieur, dès qu'on envoie le fichier XML, c'est le service natif <code>repositoryService</code> de Flowable qui prend le relais. Il parse la structure XML, valide la syntaxe BPMN 2.0, incrémente la version du processus et stocke le binaire en base. »
+    </div>
+
+    <!-- Etape B -->
+    <div class="sub-title">
+        <span class="sub-badge">Étape B</span>
+        La Lecture Dynamique du BPMN en Mémoire (WorkflowService.java : ligne 30)
+    </div>
+    <div class="code-block"><span style="color:#64748b;">// 1. On demande à Flowable l'arbre en mémoire du dernier BPMN déployé</span>
+BpmnModel bpmnModel = repositoryService.<span style="color:#60a5fa;">getBpmnModel</span>(procDef.getId());
+
+<span style="color:#64748b;">// 2. On parcourt les flèches (SequenceFlow) pour extraire les tâches dans l'ordre chronologique</span>
+List&lt;UserTask&gt; tasks = process.<span style="color:#60a5fa;">findFlowElementsOfType</span>(UserTask.<span style="color:#f472b6;">class</span>);
+
+<span style="color:#64748b;">// 3. On met à jour nos tables d'états pour alimenter le Kanban et le Stepper</span>
+workflow.<span style="color:#60a5fa;">getStates</span>().<span style="color:#60a5fa;">clear</span>();
+<span style="color:#f472b6;">for</span> (String stateName : orderedStateNames) {
+    workflow.<span style="color:#60a5fa;">getStates</span>().<span style="color:#60a5fa;">add</span>(<span style="color:#f472b6;">new</span> WorkflowState(stateName, ...));
+}
+workflowRepository.<span style="color:#60a5fa;">save</span>(workflow);</div>
+
+    <!-- Etape C -->
+    <div class="sub-title">
+        <span class="sub-badge">Étape C</span>
+        L'Avancement d'un Incident lors d'une transition Kanban (IncidentService.java : ligne 208)
+    </div>
+    <div class="code-block"><span style="color:#64748b;">// Quand on déplace une carte sur le Kanban :</span>
+taskService.<span style="color:#60a5fa;">complete</span>(currentTask.getId(), variables);
+
+<span style="color:#64748b;">// Flowable calcule automatiquement la tâche suivante selon le XML BPMN :</span>
+Task nextTask = taskService.<span style="color:#60a5fa;">createTaskQuery</span>().<span style="color:#60a5fa;">processInstanceId</span>(incident.getProcessInstanceId()).<span style="color:#60a5fa;">singleResult</span>();
+incident.<span style="color:#60a5fa;">setStatus</span>(nextTask.getName()); <span style="color:#64748b;">// &lt;-- Le statut en BDD prend le nom littéral défini dans le XML</span></div>
+
+    <!-- Page Break for clear 2nd page printing -->
+    <div class="page-break"></div>
+
+    <!-- VOLET 2 : LA BASE DE DONNEES -->
+    <div class="section-title">
+        <span>VOLET 2 : Où on voit ces modifications dans la Base de Données (Les Tables)</span>
+        <span style="font-size: 10px; font-weight: 500; color: #475569;">PostgreSQL / Schémas flowable & incidentflow</span>
+    </div>
+    <p style="margin: 0 0 8px 0; color: #475569; font-size: 11px;">
+        Ouvrez <strong>pgAdmin</strong> devant l'enseignant ou exécutez ces 5 requêtes dans l'outil Query Tool pour prouver la persistance réelle :
+    </p>
+
+    <!-- 1 -->
+    <div class="sub-title">1. La preuve que le XML a été déployé : <code>flowable.act_re_deployment</code></div>
+    <div class="sql-block">SELECT id_, name_, deploy_time_ 
+FROM flowable.act_re_deployment 
+ORDER BY deploy_time_ DESC LIMIT 1;</div>
+    <div class="result-box">
+        👉 <strong>Ce qu'on voit :</strong> Une nouvelle ligne apparaît avec l'identifiant unique du déploiement ainsi que la date et l'heure exacte de l'import du fichier.
+    </div>
+
+    <!-- 2 -->
+    <div class="sub-title">2. La preuve physique que le fichier XML est en base : <code>flowable.act_ge_bytearray</code></div>
+    <div class="sql-block">SELECT id_, name_, length(bytes_) AS "Taille (Octets)" 
+FROM flowable.act_ge_bytearray 
+WHERE name_ LIKE '%.bpmn%';</div>
+    <div class="result-box">
+        👉 <strong>Ce qu'on voit :</strong> Le fichier XML <code>incident_workflow_v2.bpmn20.xml</code> stocké sous forme binaire (BLOB/bytea). C'est la preuve physique que le XML n'est pas perdu dans la nature mais persisté de façon pérenne dans PostgreSQL.
+    </div>
+
+    <!-- 3 -->
+    <div class="sub-title">3. La preuve du Versioning du Processus : <code>flowable.act_re_procdef</code></div>
+    <div class="sql-block">SELECT id_, key_, version_, name_ 
+FROM flowable.act_re_procdef 
+ORDER BY version_ DESC;</div>
+    <div class="result-box">
+        👉 <strong>Ce qu'on voit :</strong> La colonne <code>version_</code> qui s'incrémente (ex: <code>1</code>, puis <code>2</code>, puis <code>3</code>).<br>
+        <em>Ce que vous dites au prof :</em> « Vous voyez Monsieur, Flowable a créé une nouvelle version sans écraser l'ancienne, ce qui protège les incidents en cours. »
+    </div>
+
+    <!-- 4 -->
+    <div class="sub-title">4. La preuve de la synchronisation Métier : <code>incidentflow.workflow_states</code></div>
+    <div class="sql-block">SELECT id, name, label 
+FROM incidentflow.workflow_states;</div>
+    <div class="result-box">
+        👉 <strong>Ce qu'on voit :</strong> Les nouveaux noms d'états extraits du XML apparaissent ici (ex: <em>Nouveau</em>, <em>Assigné</em>, <em>En cours</em>, <em>Résolu</em>, <em>Clôturé</em>). C'est cette table qui alimente le stepper de la fiche d'incident et les colonnes du Kanban !
+    </div>
+
+    <!-- 5 -->
+    <div class="sub-title">5. La preuve de l'Audit Trail lors des transitions : <code>flowable.act_hi_taskinst</code></div>
+    <div class="sql-block">SELECT name_, start_time_, end_time_, duration_ 
+FROM flowable.act_hi_taskinst 
+ORDER BY start_time_ DESC LIMIT 5;</div>
+    <div class="result-box">
+        👉 <strong>Ce qu'on voit :</strong> Le journal d'audit immuable de Flowable qui consigne chaque passage d'état avec l'opérateur et la durée exacte passée sur chaque tâche (conformité SLA / ISO 27001).
+    </div>
+
+    <!-- SYNTHÈSE ORALE -->
+    <div class="synthesis-box">
+        <h3>💬 La phrase de synthèse à prononcer devant le professeur :</h3>
+        <p>
+            « Pour résumer Monsieur :<br>
+            <strong>1. Côté Code :</strong> le fichier XML entre par <code>WorkflowController</code>, est validé par le moteur <code>RepositoryService</code> de Flowable, et notre méthode <code>syncWithFlowable</code> propage les nouvelles étapes vers le Frontend.<br>
+            <strong>2. Côté Base de données :</strong> le binaire XML est sauvegardé dans <code>flowable.act_ge_bytearray</code>, sa définition incrémente la table <code>flowable.act_re_procdef</code>, et les états métiers sont reflétés dans <code>incidentflow.workflow_states</code> sans jamais mélanger les données grâce à nos 4 schémas partitionnés. »
+        </p>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <span>IncidentFlow V2 — Support d'Évaluation & Traçabilité BPMN</span>
+        <span>Document d'Ingénierie pour Impression A4 Recto-Verso</span>
+    </div>
+
+</body>
+</html>

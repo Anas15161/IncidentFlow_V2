@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Structure BPMN - Neon Edition</title>
+    <style>
+        /* Reset and Dark background */
+        body { 
+            background-color: #050505; 
+            color: #e0e0e0; 
+            font-family: 'Fira Code', 'Courier New', Courier, monospace; 
+            margin: 0; 
+            padding: 40px; 
+            overflow-x: hidden; 
+            background-image: radial-gradient(circle at 50% 0%, #1a0033 0%, #050505 60%);
+            min-height: 100vh;
+        }
+        
+        h1 { 
+            color: #fff; 
+            text-align: center; 
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            text-shadow: 0 0 5px #fff, 0 0 10px #0ff, 0 0 20px #0ff, 0 0 40px #0ff; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin-bottom: 40px;
+        }
+
+        /* Container */
+        .code-container { 
+            background: rgba(10, 10, 10, 0.8); 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.1), inset 0 0 15px rgba(255, 0, 255, 0.05); 
+            border: 1px solid rgba(0, 255, 255, 0.2); 
+            max-width: 950px; 
+            margin: 0 auto; 
+            line-height: 1.8; 
+            font-size: 16px; 
+            position: relative;
+        }
+
+        /* Syntax Highlighting */
+        .tag { color: #ff007f; text-shadow: 0 0 8px rgba(255, 0, 127, 0.8); font-weight: bold; }
+        .attr { color: #00ffff; text-shadow: 0 0 8px rgba(0, 255, 255, 0.8); }
+        .val { color: #ffd700; text-shadow: 0 0 8px rgba(255, 215, 0, 0.8); }
+        .comment { color: #00ff00; text-shadow: 0 0 8px rgba(0, 255, 0, 0.8); font-style: italic; }
+        .text { color: #ffffff; text-shadow: 0 0 5px rgba(255, 255, 255, 0.5); }
+        
+        /* Interactive Node (Neon Pulse) */
+        .interactive {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            width: 100%;
+            padding: 2px 5px;
+            border-radius: 4px;
+            border-left: 2px solid transparent;
+            transition: all 0.3s ease;
+            animation: pulse-border 2.5s infinite;
+        }
+        
+        .interactive:hover {
+            animation: none;
+            background: rgba(0, 255, 255, 0.05);
+            border-left: 2px solid #00ffff;
+            box-shadow: -5px 0 15px rgba(0, 255, 255, 0.3);
+        }
+
+        @keyframes pulse-border {
+            0% { border-left: 2px solid rgba(0, 255, 255, 0.2); }
+            50% { border-left: 2px solid rgba(0, 255, 255, 1); box-shadow: -2px 0 10px rgba(0, 255, 255, 0.5); }
+            100% { border-left: 2px solid rgba(0, 255, 255, 0.2); }
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background: rgba(5, 5, 10, 0.95);
+            border: 1px solid #ff007f;
+            color: #fff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 14px;
+            width: 320px;
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.6), inset 0 0 10px rgba(255, 0, 127, 0.3);
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(10px) translateX(20px) scale(0.95);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 100;
+            left: 50%;
+            top: 100%;
+            backdrop-filter: blur(5px);
+        }
+
+        .tooltip h3 { 
+            margin: 0 0 10px 0; 
+            color: #00ffff; 
+            text-shadow: 0 0 8px rgba(0, 255, 255, 0.8); 
+            font-size: 16px;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            padding-bottom: 5px;
+        }
+        
+        .tooltip p { margin: 0; line-height: 1.5; color: #ddd; }
+        
+        .interactive:hover .tooltip {
+            opacity: 1;
+            transform: translateY(-50%) translateX(30px) scale(1);
+            left: 70%;
+            top: 50%;
+        }
+        
+        /* Indentations */
+        .indent-1 { margin-left: 30px; }
+        .indent-2 { margin-left: 60px; }
+        .indent-3 { margin-left: 90px; }
+        
+        /* Scanline effect */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+    <div class="scanlines"></div>
+    <h1>Anatomie du BPMN (Flowable)</h1>
+    
+    <div class="code-container">
+        <div><span class="tag">&lt;?xml</span> <span class="attr">version</span>=<span class="val">"1.0"</span> <span class="attr">encoding</span>=<span class="val">"UTF-8"</span><span class="tag">?&gt;</span></div>
+        <div style="margin-bottom: 10px;"><span class="tag">&lt;definitions</span> <span class="attr">xmlns</span>=<span class="val">"http://www.omg.org/spec/BPMN/20100524/MODEL"</span> ...<span class="tag">&gt;</span></div>
+        
+        <!-- Process -->
+        <div class="indent-1 interactive">
+            <span class="tag">&lt;process</span> <span class="attr">id</span>=<span class="val">"incidentWorkflow"</span> <span class="attr">name</span>=<span class="val">"Incident Standard"</span> <span class="attr">isExecutable</span>=<span class="val">"true"</span><span class="tag">&gt;</span>
+            <div class="tooltip">
+                <h3>Le Conteneur Processus</h3>
+                <p>C'est la coquille globale. <b>isExecutable="true"</b> est indispensable pour que le moteur Flowable accepte de l'instancier et de l'exécuter en base de données.</p>
+            </div>
+        </div>
+        
+        <!-- Start Event -->
+        <div class="indent-2 interactive">
+            <span class="tag">&lt;startEvent</span> <span class="attr">id</span>=<span class="val">"startEvent1"</span> <span class="attr">name</span>=<span class="val">"Création Incident"</span> <span class="attr">flowable:initiator</span>=<span class="val">"initiator"</span><span class="tag">&gt;&lt;/startEvent&gt;</span>
+            <div class="tooltip">
+                <h3>Événement de Début</h3>
+                <p>Le point d'entrée unique. L'attribut exclusif <b>flowable:initiator</b> enregistre automatiquement la personne connectée dans une variable pour s'en souvenir plus tard.</p>
+            </div>
+        </div>
+
+        <!-- User Task Nouveau -->
+        <div class="indent-2 interactive" style="margin-top: 10px;">
+            <span class="tag">&lt;userTask</span> <span class="attr">id</span>=<span class="val">"taskNouveau"</span> <span class="attr">name</span>=<span class="val">"Nouveau"</span><span class="tag">&gt;</span><br>
+            <span class="indent-3 tag">&lt;documentation&gt;</span><span class="text">Incident créé, en attente d'assignation.</span><span class="tag">&lt;/documentation&gt;</span><br>
+            <span class="indent-2 tag">&lt;/userTask&gt;</span>
+            <div class="tooltip">
+                <h3>Tâche Humaine (UserTask)</h3>
+                <p>Le moteur met le workflow "en pause" à ce stade. Il crée une entrée dans la table <b>ACT_RU_TASK</b> en attente d'une intervention humaine (ex: <i>taskService.complete()</i>).</p>
+            </div>
+        </div>
+        
+        <!-- User Task Assigné -->
+        <div class="indent-2 interactive" style="margin-top: 10px;">
+            <span class="tag">&lt;userTask</span> <span class="attr">id</span>=<span class="val">"taskAssigne"</span> <span class="attr">name</span>=<span class="val">"Assigné"</span> <span class="attr">flowable:candidateGroups</span>=<span class="val">"Operateur"</span><span class="tag">&gt;</span><br>
+            <span class="indent-2 tag">&lt;/userTask&gt;</span>
+            <div class="tooltip">
+                <h3>Assignation et Permissions</h3>
+                <p>Ici, <b>flowable:candidateGroups</b> limite la visibilité de cette tâche. Seuls les utilisateurs ayant ce groupe/rôle pourront la réclamer et la terminer.</p>
+            </div>
+        </div>
+
+        <!-- Sequence Flows -->
+        <div class="indent-2" style="margin-top: 15px;"><span class="comment">&lt;!-- Flèches de transition (Sequence Flows) --&gt;</span></div>
+        <div class="indent-2 interactive">
+            <span class="tag">&lt;sequenceFlow</span> <span class="attr">id</span>=<span class="val">"flow1"</span> <span class="attr">sourceRef</span>=<span class="val">"startEvent1"</span> <span class="attr">targetRef</span>=<span class="val">"taskNouveau"</span><span class="tag">&gt;&lt;/sequenceFlow&gt;</span>
+            <div class="tooltip">
+                <h3>Flux de Séquence</h3>
+                <p>L'autoroute du workflow ! Relie l'élément source (<b>sourceRef</b>) à la cible (<b>targetRef</b>). Flowable suit ces flèches de manière invisible et instantanée.</p>
+            </div>
+        </div>
+        <div class="indent-2">
+            <span class="tag">&lt;sequenceFlow</span> <span class="attr">id</span>=<span class="val">"flow2"</span> <span class="attr">sourceRef</span>=<span class="val">"taskNouveau"</span> <span class="attr">targetRef</span>=<span class="val">"taskAssigne"</span><span class="tag">&gt;&lt;/sequenceFlow&gt;</span>
+        </div>
+
+        <!-- End Event -->
+        <div class="indent-2 interactive" style="margin-top: 15px;">
+            <span class="tag">&lt;endEvent</span> <span class="attr">id</span>=<span class="val">"endEvent1"</span> <span class="attr">name</span>=<span class="val">"Clôturé"</span><span class="tag">&gt;&lt;/endEvent&gt;</span>
+            <div class="tooltip">
+                <h3>Événement de Fin</h3>
+                <p>Fin du chemin. Le jeton d'exécution est détruit. L'instance entière passe de la table active <b>ACT_RU_EXECUTION</b> vers l'historique <b>ACT_HI_PROCINST</b>.</p>
+            </div>
+        </div>
+
+        <div class="indent-1 tag" style="margin-top: 10px;">&lt;/process&gt;</div>
+        <div class="indent-1"><span class="comment">&lt;!-- &lt;bpmndi:BPMNDiagram&gt; ... (masqué) --&gt;</span></div>
+        <div><span class="tag">&lt;/definitions&gt;</span></div>
+    </div>
+    
+    <script>
+        // Effet d'apparition au chargement
+        const container = document.querySelector('.code-container');
+        container.style.opacity = '0';
+        container.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            container.style.transition = 'all 1s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            container.style.opacity = '1';
+            container.style.transform = 'translateY(0)';
+        }, 100);
+        
+        // Effet de glitch néon aléatoire
+        setInterval(() => {
+            const tags = document.querySelectorAll('.tag');
+            const randomTag = tags[Math.floor(Math.random() * tags.length)];
+            const oldShadow = randomTag.style.textShadow;
+            randomTag.style.textShadow = '0 0 2px #fff, 0 0 5px #fff';
+            setTimeout(() => {
+                randomTag.style.textShadow = oldShadow;
+            }, 80);
+        }, 1500);
+    </script>
+</body>
+</html>

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Analyseur BPMN Dynamique - Avec Rapport & Statistiques</title>
+    
+    <script src="https://unpkg.com/bpmn-js@11.5.0/dist/bpmn-viewer.development.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --secondary: #0ea5e9;
+            --bg-light: #f8fafc;
+            --surface: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        body {
+            background-color: var(--bg-light); color: var(--text-main); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0; padding: 20px 40px; background-image: radial-gradient(var(--border) 1px, transparent 1px);
+            background-size: 20px 20px; min-height: 100vh;
+        }
+
+        h1 { text-align: center; text-transform: uppercase; letter-spacing: 2px; color: var(--primary); margin-bottom: 30px; font-weight: 800; }
+
+        /* === Section Boutons === */
+        .upload-section { display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 25px; }
+        .upload-btn-wrapper { position: relative; overflow: hidden; display: inline-block; }
+        
+        .btn {
+            border: 2px solid var(--primary); color: var(--primary); background-color: var(--surface);
+            padding: 12px 30px; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer;
+            box-shadow: 0 4px 6px rgba(79, 70, 229, 0.1); transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn:hover { background-color: var(--primary); color: #ffffff; box-shadow: 0 6px 12px rgba(79, 70, 229, 0.2); transform: translateY(-2px); }
+        .upload-btn-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; }
+
+        .btn-export { border-color: #10b981; color: #10b981; display: none; }
+        .btn-export:hover { background-color: #10b981; color: white; box-shadow: 0 6px 12px rgba(16, 185, 129, 0.2); }
+
+        /* === Dashboard Statistiques === */
+        .stats-dashboard { display: none; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px; }
+        .stat-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+            padding: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            border-bottom: 4px solid var(--primary); animation: fade-in 0.5s ease forwards;
+        }
+        .stat-value { font-size: 34px; font-weight: 800; color: var(--primary); margin-bottom: 5px; }
+        .stat-label { font-size: 13px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 1px; }
+        
+        .stat-card:nth-child(2) { border-bottom-color: #0ea5e9; } .stat-card:nth-child(2) .stat-value { color: #0ea5e9; }
+        .stat-card:nth-child(3) { border-bottom-color: #d97706; } .stat-card:nth-child(3) .stat-value { color: #d97706; }
+        .stat-card:nth-child(4) { border-bottom-color: #db2777; } .stat-card:nth-child(4) .stat-value { color: #db2777; }
+
+        /* === Canvas (Schéma Écran) === */
+        #canvas-container {
+            width: 100%; height: 500px; background-color: var(--surface);
+            background-image: linear-gradient(rgba(79, 70, 229, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(79, 70, 229, 0.05) 1px, transparent 1px);
+            background-size: 25px 25px; border: 2px solid var(--border); border-radius: 12px; 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); margin-bottom: 30px; display: none; 
+        }
+
+        #print-svg-container { display: none; }
+
+        /* === Layout Grid : Tableau + Inspecteur === */
+        .main-layout { display: none; grid-template-columns: 2fr 1fr; gap: 20px; align-items: start; }
+        .panel { background: var(--surface); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03); border-radius: 12px; padding: 20px; }
+        .panel h2 { margin: 0 0 15px 0; color: var(--primary); font-size: 18px; text-transform: uppercase; border-bottom: 2px solid var(--bg-light); padding-bottom: 10px; }
+
+        /* === Tableau === */
+        table { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
+        th { text-align: left; padding: 10px 15px; color: var(--text-muted); font-size: 13px; text-transform: uppercase; font-weight: 700;}
+        td { padding: 12px 15px; background: var(--surface); font-size: 14px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); cursor: pointer; transition: all 0.2s; }
+        td:first-child { border-left: 1px solid var(--border); border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+        td:last-child { border-right: 1px solid var(--border); border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+        tr:hover td { background: #e0e7ff; border-color: #a5b4fc; transform: scale(1.01); z-index: 10; position: relative;}
+        
+        .badge { padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: 600; display: inline-block; white-space: nowrap;}
+        .badge-task { background: #e0f2fe; color: #0284c7; }
+        .badge-event { background: #fce7f3; color: #db2777; }
+        .badge-flow { background: #f1f5f9; color: #475569; }
+        .badge-gateway { background: #fef3c7; color: #d97706; }
+        .font-mono { font-family: 'Courier New', monospace; color: #db2777; font-weight: bold; font-size: 13px;}
+
+        /* === Inspecteur === */
+        .inspector-card { position: sticky; top: 20px; background: #f8fafc; border: 2px solid #bae6fd; }
+        .inspector-empty { text-align: center; color: var(--text-muted); font-style: italic; padding: 40px 0; }
+        .inspector-content { display: none; }
+        
+        /* === NOUVEAUTÉ : ANIMATIONS DU CODE ET EFFET SPOTLIGHT === */
+        .code-wrapper {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden; /* Garde le scanner à l'intérieur */
+            background: #ffffff;
+            border: 1px solid var(--border);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        pre[class*="language-"] {
+            margin: 0 !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            border: none !important;
+            padding: 20px !important; 
+            font-size: 13px !important; 
+            overflow: auto; 
+            max-height: 400px;
+            transition: background 0.3s ease;
+        }
+
+        /* Effet Spotlight (Focus) : quand on survole le bloc de code, le texte normal s'efface un peu */
+        pre[class*="language-"]:hover {
+            background: #f1f5f9 !important;
+        }
+        pre[class*="language-"]:hover .token:not(.interactive-token) {
+            opacity: 0.4;
+            transition: opacity 0.3s ease;
+        }
+        /* Et les tokens interactifs non-survolés perdent leur fond pour que seul celui survolé brille */
+        pre[class*="language-"]:hover .interactive-token:not(:hover) {
+            background: transparent !important;
+            border-bottom-color: #cbd5e1;
+            opacity: 0.7;
+        }
+
+        /* Le Scanner (Balayage laser bleu quand le code change) */
+        .code-scanner {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, transparent 80%, rgba(14, 165, 233, 0.4) 95%, #0ea5e9 100%);
+            transform: translateY(-100%);
+            pointer-events: none;
+            z-index: 10;
+        }
+        .scanning {
+            animation: scan 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        @keyframes scan {
+            0% { transform: translateY(-100%); opacity: 1; }
+            80% { transform: translateY(0%); opacity: 1; }
+            100% { transform: translateY(0%); opacity: 0; }
+        }
+
+        /* Bouton Copier interactif */
+        .copy-btn {
+            position: absolute; top: 10px; right: 10px;
+            background: white; border: 1px solid var(--border);
+            border-radius: 6px; padding: 6px 10px; cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-size: 16px;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 20;
+        }
+        .copy-btn:hover { transform: scale(1.1); box-shadow: 0 4px 8px rgba(0,0,0,0.15); border-color: #0ea5e9;}
+        .copy-btn:active { transform: scale(0.9); }
+
+        /* Animation d'apparition des mots-clés (Pop-in) */
+        .token { transition: background 0.2s, transform 0.2s, opacity 0.3s; display: inline-block; }
+        .interactive-token { 
+            background: #e0f2fe !important; color: #0369a1 !important; 
+            border-bottom: 2px dashed #0ea5e9; border-radius: 4px; padding: 0 4px; font-weight: 700; 
+        }
+        .interactive-token:hover { 
+            background: #bae6fd !important; color: #0c4a6e !important; cursor: help; 
+            transform: translateY(-2px) scale(1.05); box-shadow: 0 4px 8px rgba(14, 165, 233, 0.2); 
+            border-bottom-style: solid;
+            opacity: 1 !important;
+        }
+
+        @keyframes pop-token {
+            0% { opacity: 0; transform: translateY(10px) scale(0.8); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Info Bulle */
+        #code-explainer { position: fixed; background: #1e293b; color: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); pointer-events: none; opacity: 0; z-index: 1000; width: 280px; }
+        #code-explainer h4 { margin: 0 0 8px 0; color: #38bdf8; font-size: 15px; border-bottom: 1px solid #334155; padding-bottom: 5px;}
+        #code-explainer p { margin: 0; font-size: 13px; line-height: 1.5; color: #cbd5e1; }
+        #code-explainer .explainer-type { font-size: 10px; text-transform: uppercase; color: #a78bfa; margin-bottom: 5px; display: block; font-weight: bold;}
+
+        /* ========================================= */
+        /* CSS DÉDIÉ À L'IMPRESSION / EXPORT PDF     */
+        /* ========================================= */
+        @media print {
+            body { background: white !important; margin: 0; padding: 0; background-image: none !important; }
+            .upload-section, .inspector-card, #full-code-panel, #code-explainer { display: none !important; }
+            h1 { color: black !important; font-size: 24px; margin-bottom: 15px; }
+            #canvas-container { display: none !important; } 
+            #print-svg-container { display: block !important; width: 100%; text-align: center; margin-bottom: 30px; page-break-inside: avoid; }
+            #print-svg-container svg { max-width: 100%; height: auto; max-height: 15cm; }
+            .main-layout { display: block !important; position: relative; clear: both; margin-top: 20px; } 
+            .panel { box-shadow: none !important; border: none !important; padding: 0 !important; }
+            .stats-dashboard { margin-top: 10px; margin-bottom: 20px; gap: 10px; display: flex !important; justify-content: space-between;}
+            .stat-card { border: 1px solid #ddd !important; box-shadow: none !important; padding: 10px; flex: 1; margin-right: 10px;}
+            table { border-collapse: collapse !important; border-spacing: 0 !important; width: 100%; table-layout: fixed; page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            th { border-bottom: 2px solid #000; color: #000; padding: 8px;}
+            td { border: 1px solid #ddd !important; border-radius: 0 !important; background: white !important; padding: 8px !important; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; }
+            .badge { border: 1px solid #999 !important; background: transparent !important; color: #000 !important; }
+            @page { size: landscape; margin: 1cm; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1 id="main-title">Analyseur BPMN & Documentation</h1>
+
+    <div class="upload-section">
+        <div class="upload-btn-wrapper">
+            <button class="btn">📂 Analyser un workflow (.xml)</button>
+            <input type="file" id="fileInput" accept=".xml,.bpmn,.bpmn20.xml" />
+        </div>
+        <button class="btn btn-export" id="btn-export" onclick="window.print()">📄 Générer Rapport PDF</button>
+    </div>
+
+    <div class="stats-dashboard" id="stats-dashboard">
+        <div class="stat-card">
+            <div class="stat-value" id="stat-human">0</div>
+            <div class="stat-label">Tâches Humaines</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="stat-sys">0</div>
+            <div class="stat-label">Tâches Automatiques</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="stat-gw">0</div>
+            <div class="stat-label">Passerelles (Routage)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="stat-ev">0</div>
+            <div class="stat-label">Événements (Début/Fin)</div>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+    <div id="print-svg-container"></div>
+
+    <div class="main-layout" id="main-layout">
+        
+        <div class="panel">
+            <h2>Inventaire des Éléments</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">Type</th>
+                        <th style="width: 25%;">ID technique</th>
+                        <th style="width: 30%;">Libellé (Nom)</th>
+                        <th style="width: 30%;">Règles d'Assignation</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body"></tbody>
+            </table>
+        </div>
+
+        <div class="panel inspector-card" id="inspector-card">
+            <h2>Code & Détails</h2>
+            <div id="inspector-empty" class="inspector-empty">Survolez une ligne du tableau pour afficher son code.</div>
+            <div id="inspector-content" class="inspector-content">
+                <div style="display:flex; gap:10px; margin-bottom:10px; align-items:center;">
+                    <span id="insp-badge"></span><h3 style="margin:0; font-size:16px;" id="insp-name">Nom</h3>
+                </div>
+                <div class="font-mono" style="margin-bottom:10px;" id="insp-id">ID</div>
+                
+                <!-- Le bloc de code animé -->
+                <div class="code-wrapper">
+                    <!-- Laser Scanner -->
+                    <div class="code-scanner" id="code-scanner"></div>
+                    <!-- Bouton Copier -->
+                    <button class="copy-btn" onclick="copyCode()" title="Copier ce bloc XML">📋</button>
+                    <!-- Le code XML -->
+                    <pre><code id="insp-xml" class="language-xml"></code></pre>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Reste caché pour la propreté -->
+    <div class="panel" id="full-code-panel" style="display: none; margin-top: 30px;">
+        <h2>Code XML Complet</h2>
+        <div class="code-wrapper">
+            <pre><code id="full-xml-code" class="language-xml"></code></pre>
+        </div>
+    </div>
+
+    <div id="code-explainer">
+        <span class="explainer-type" id="explainer-type"></span>
+        <h4 id="explainer-title"></h4>
+        <p id="explainer-desc"></p>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const btnExport = document.getElementById('btn-export');
+        const statsDashboard = document.getElementById('stats-dashboard');
+        
+        const canvasContainer = document.getElementById('canvas-container');
+        const mainLayout = document.getElementById('main-layout');
+        const tableBody = document.getElementById('table-body');
+        
+        const inspEmpty = document.getElementById('inspector-empty');
+        const inspContent = document.getElementById('inspector-content');
+        const inspBadge = document.getElementById('insp-badge');
+        const inspName = document.getElementById('insp-name');
+        const inspId = document.getElementById('insp-id');
+        const inspXml = document.getElementById('insp-xml');
+        const codeScanner = document.getElementById('code-scanner');
+        
+        const fullCodePanel = document.getElementById('full-code-panel');
+        const fullXmlCode = document.getElementById('full-xml-code');
+        const explainer = document.getElementById('code-explainer');
+
+        const viewer = new BpmnJS({ container: '#canvas-container', width: '100%', height: '100%' });
+        const serializer = new XMLSerializer();
+
+        const xmlDictionary = {
+            'process': { type: 'Conteneur', title: 'Processus (Process)', desc: 'La coquille principale.' },
+            'startEvent': { type: 'Événement', title: 'Événement de Début', desc: 'Point d\'entrée du processus.' },
+            'endEvent': { type: 'Événement', title: 'Événement de Fin', desc: 'Point de sortie du processus.' },
+            'userTask': { type: 'Tâche', title: 'Tâche Humaine', desc: 'Attente d\'une validation humaine.' },
+            'serviceTask': { type: 'Tâche', title: 'Tâche Système', desc: 'Code exécuté automatiquement.' },
+            'scriptTask': { type: 'Tâche', title: 'Tâche de Script', desc: 'Script exécuté par le moteur.' },
+            'sequenceFlow': { type: 'Routage', title: 'Flux de Séquence', desc: 'Flèche directionnelle.' },
+            'exclusiveGateway': { type: 'Passerelle', title: 'Passerelle Exclusive', desc: 'Routage conditionnel exclusif (OU).' },
+            'parallelGateway': { type: 'Passerelle', title: 'Passerelle Parallèle', desc: 'Débranchement parallèle (ET).' },
+            'flowable:assignee': { type: 'Assignation', title: 'Assignataire', desc: 'Utilisateur précis affecté.' },
+            'flowable:candidateGroups': { type: 'Assignation', title: 'Groupes', desc: 'Groupes d\'utilisateurs autorisés.' },
+            'conditionExpression': { type: 'Logique', title: 'Condition', desc: 'Règle logique de passage.' }
+        };
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById('main-title').textContent = "Rapport : " + file.name;
+            const reader = new FileReader();
+            reader.onload = async function(event) {
+                const xml = event.target.result;
+                try {
+                    canvasContainer.style.display = 'block';
+                    await viewer.importXML(xml);
+                    setTimeout(() => { try { viewer.get('canvas').zoom('fit-viewport', 'auto'); } catch(e){} }, 150);
+                    
+                    const { svg } = await viewer.saveSVG({ format: true });
+                    document.getElementById('print-svg-container').innerHTML = svg;
+
+                    parseXMLAndFillUI(xml);
+                } catch (err) { alert('Erreur BPMN : ' + err.message); }
+            };
+            reader.readAsText(file);
+        });
+
+        function parseXMLAndFillUI(xmlString) {
+            fullCodePanel.style.display = 'block';
+            fullXmlCode.textContent = xmlString;
+            Prism.highlightElement(fullXmlCode);
+            makeCodeInteractive(fullXmlCode);
+
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+            
+            tableBody.innerHTML = '';
+            mainLayout.style.display = 'grid';
+            statsDashboard.style.display = 'grid';
+            btnExport.style.display = 'inline-flex';
+
+            const processNode = xmlDoc.getElementsByTagName('process')[0] || xmlDoc.getElementsByTagName('bpmn:process')[0];
+            if (!processNode) return;
+            const elements = processNode.children;
+            
+            let cHuman = 0, cSys = 0, cGw = 0, cEv = 0;
+
+            for (let i = 0; i < elements.length; i++) {
+                const el = elements[i];
+                const tagName = el.tagName.replace('bpmn:', '');
+                if (tagName === 'extensionElements' || tagName === 'documentation') continue;
+
+                if (tagName === 'userTask') cHuman++;
+                else if (tagName.includes('Task')) cSys++; 
+                else if (tagName.includes('Gateway')) cGw++;
+                else if (tagName === 'startEvent' || tagName === 'endEvent') cEv++;
+
+                const id = el.getAttribute('id') || '-';
+                const name = el.getAttribute('name') || '';
+                
+                const assignee = el.getAttribute('flowable:assignee');
+                const candidateGroups = el.getAttribute('flowable:candidateGroups');
+                let assignText = '';
+                if(assignee) assignText += `<div style="color:#0284c7; font-weight:bold;">👤 Assigné: ${assignee}</div>`;
+                if(candidateGroups) assignText += `<div style="color:#d97706; font-weight:bold;">👥 Groupe: ${candidateGroups}</div>`;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${formatBadge(tagName)}</td>
+                    <td class="font-mono">${id}</td>
+                    <td><b>${name || '-'}</b></td>
+                    <td>${assignText || '-'}</td>
+                `;
+                
+                row.addEventListener('mouseenter', () => updateInspector(el, tagName, name, id));
+                tableBody.appendChild(row);
+            }
+
+            document.getElementById('stat-human').textContent = cHuman;
+            document.getElementById('stat-sys').textContent = cSys;
+            document.getElementById('stat-gw').textContent = cGw;
+            document.getElementById('stat-ev').textContent = cEv;
+        }
+
+        function updateInspector(domElement, tagName, name, id) {
+            inspEmpty.style.display = 'none';
+            inspContent.style.display = 'block';
+
+            inspBadge.innerHTML = formatBadge(tagName);
+            inspName.textContent = name || 'Sans nom';
+            inspId.textContent = 'ID: ' + id;
+
+            let xmlSnippet = serializer.serializeToString(domElement);
+            inspXml.textContent = xmlSnippet;
+            Prism.highlightElement(inspXml);
+            makeCodeInteractive(inspXml);
+
+            // ANIMATION 1 : Déclenchement du scanner Laser
+            codeScanner.classList.remove('scanning');
+            void codeScanner.offsetWidth; // Force le reflow du navigateur pour relancer l'animation
+            codeScanner.classList.add('scanning');
+        }
+
+        function formatBadge(tag) {
+            let t = tag.toLowerCase();
+            if (t.includes('task')) return `<span class="badge badge-task">${tag}</span>`;
+            if (t.includes('event')) return `<span class="badge badge-event">${tag}</span>`;
+            if (t.includes('flow')) return `<span class="badge badge-flow">${tag}</span>`;
+            if (t.includes('gateway')) return `<span class="badge badge-gateway">${tag}</span>`;
+            return `<span class="badge badge-flow">${tag}</span>`;
+        }
+
+        function makeCodeInteractive(codeContainer) {
+            const tokens = codeContainer.querySelectorAll('.token.tag .token.title, .token.attr-name');
+            let delayIndex = 0; // Pour l'animation Pop-in
+
+            tokens.forEach(token => {
+                const word = token.textContent.trim();
+                if (xmlDictionary[word]) {
+                    token.classList.add('interactive-token');
+                    
+                    // ANIMATION 2 : Apparition "Pop-in" séquentielle des mots-clés
+                    token.style.animation = `pop-token 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards`;
+                    token.style.animationDelay = `${delayIndex * 0.05}s`;
+                    token.style.opacity = '0';
+                    delayIndex++;
+
+                    token.addEventListener('mousemove', (e) => {
+                        const info = xmlDictionary[word];
+                        document.getElementById('explainer-type').textContent = info.type;
+                        document.getElementById('explainer-title').textContent = info.title;
+                        document.getElementById('explainer-desc').textContent = info.desc;
+                        
+                        explainer.style.opacity = '1';
+                        explainer.style.transform = 'translateY(0)';
+                        explainer.style.left = (e.clientX + 15) + 'px';
+                        explainer.style.top = (e.clientY + 15) + 'px';
+                    });
+                    token.addEventListener('mouseleave', () => {
+                        explainer.style.opacity = '0';
+                        explainer.style.transform = 'translateY(10px)';
+                    });
+                }
+            });
+        }
+
+        function copyCode() {
+            const text = inspXml.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = "✅ Copié";
+                btn.style.background = "#10b981";
+                btn.style.color = "white";
+                setTimeout(() => { 
+                    btn.textContent = "📋"; 
+                    btn.style.background = "white"; 
+                    btn.style.color = "black";
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

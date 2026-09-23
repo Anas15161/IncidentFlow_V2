@@ -206,11 +206,19 @@ export function IncidentDetailView({
               </span>
             </div>
             <div className="meta-item">
-              <span className="meta-label">Workflow appliqué</span>
-              <span className="meta-val" style={{ fontWeight: '700', color: 'var(--primary-600)' }}>
-                {selectedIncident.workflow ? selectedIncident.workflow.name : 'Workflow Standard'}
+              <span className="meta-label">Orchestration</span>
+              <span className="meta-val" style={{ fontWeight: '700', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                ⚡ Flowable BPMN 2.0
               </span>
             </div>
+            {selectedIncident.processInstanceId && (
+              <div className="meta-item">
+                <span className="meta-label">Flowable Instance ID</span>
+                <span className="meta-val" style={{ fontFamily: 'monospace', fontSize: '11px', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
+                  #{selectedIncident.processInstanceId}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Jauge Visuelle SLA */}

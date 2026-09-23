@@ -1,0 +1,2229 @@
+@startuml
+!theme plain
+skinparam linetype ortho
+skinparam EntityBackgroundColor #F8FAFC
+hide circle
+scale max 3000 width
+
+entity "act_adm_databasechangelog" {
+  id : character varying
+  author : character varying
+  filename : character varying
+  dateexecuted : timestamp without time zone
+  orderexecuted : integer
+  exectype : character varying
+  md5sum : character varying
+  description : character varying
+  comments : character varying
+  tag : character varying
+  liquibase : character varying
+  contexts : character varying
+  labels : character varying
+  deployment_id : character varying
+}
+
+entity "act_adm_databasechangeloglock" {
+  * id : integer <<PK>>
+  locked : boolean
+  lockgranted : timestamp without time zone
+  lockedby : character varying
+}
+
+entity "act_adm_server_config" {
+  * id_ : character varying <<PK>>
+  name_ : character varying
+  description_ : character varying
+  server_address_ : character varying
+  port_ : integer
+  context_root_ : character varying
+  rest_root_ : character varying
+  user_name_ : character varying
+  password_ : character varying
+  endpoint_type_ : integer
+  tenant_id_ : character varying
+}
+
+entity "act_app_appdef" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  name_ : character varying
+  key_ : character varying
+  version_ : integer
+  category_ : character varying
+  deployment_id_ : character varying
+  resource_name_ : character varying
+  description_ : character varying
+  tenant_id_ : character varying
+}
+
+entity "act_app_databasechangelog" {
+  id : character varying
+  author : character varying
+  filename : character varying
+  dateexecuted : timestamp without time zone
+  orderexecuted : integer
+  exectype : character varying
+  md5sum : character varying
+  description : character varying
+  comments : character varying
+  tag : character varying
+  liquibase : character varying
+  contexts : character varying
+  labels : character varying
+  deployment_id : character varying
+}
+
+entity "act_app_databasechangeloglock" {
+  * id : integer <<PK>>
+  locked : boolean
+  lockgranted : timestamp without time zone
+  lockedby : character varying
+}
+
+entity "act_app_deployment" {
+  * id_ : character varying <<PK>>
+  name_ : character varying
+  category_ : character varying
+  key_ : character varying
+  deploy_time_ : timestamp without time zone
+  tenant_id_ : character varying
+}
+
+entity "act_app_deployment_resource" {
+  * id_ : character varying <<PK>>
+  name_ : character varying
+  deployment_id_ : character varying
+  resource_bytes_ : bytea
+}
+
+entity "act_cmmn_casedef" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  name_ : character varying
+  key_ : character varying
+  version_ : integer
+  category_ : character varying
+  deployment_id_ : character varying
+  resource_name_ : character varying
+  description_ : character varying
+  has_graphical_notation_ : boolean
+  tenant_id_ : character varying
+  dgrm_resource_name_ : character varying
+  has_start_form_key_ : boolean
+}
+
+entity "act_cmmn_databasechangelog" {
+  id : character varying
+  author : character varying
+  filename : character varying
+  dateexecuted : timestamp without time zone
+  orderexecuted : integer
+  exectype : character varying
+  md5sum : character varying
+  description : character varying
+  comments : character varying
+  tag : character varying
+  liquibase : character varying
+  contexts : character varying
+  labels : character varying
+  deployment_id : character varying
+}
+
+entity "act_cmmn_databasechangeloglock" {
+  * id : integer <<PK>>
+  locked : boolean
+  lockgranted : timestamp without time zone
+  lockedby : character varying
+}
+
+entity "act_cmmn_deployment" {
+  * id_ : character varying <<PK>>
+  name_ : character varying
+  category_ : character varying
+  key_ : character varying
+  deploy_time_ : timestamp without time zone
+  parent_deployment_id_ : character varying
+  tenant_id_ : character varying
+}
+
+entity "act_cmmn_deployment_resource" {
+  * id_ : character varying <<PK>>
+  name_ : character varying
+  deployment_id_ : character varying
+  resource_bytes_ : bytea
+  generated_ : boolean
+}
+
+entity "act_cmmn_hi_case_inst" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  business_key_ : character varying
+  name_ : character varying
+  parent_id_ : character varying
+  case_def_id_ : character varying
+  state_ : character varying
+  start_time_ : timestamp without time zone
+  end_time_ : timestamp without time zone
+  start_user_id_ : character varying
+  callback_id_ : character varying
+  callback_type_ : character varying
+  tenant_id_ : character varying
+  reference_id_ : character varying
+  reference_type_ : character varying
+  last_reactivation_time_ : timestamp without time zone
+  last_reactivation_user_id_ : character varying
+  business_status_ : character varying
+}
+
+entity "act_cmmn_hi_mil_inst" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  name_ : character varying
+  time_stamp_ : timestamp without time zone
+  case_inst_id_ : character varying
+  case_def_id_ : character varying
+  element_id_ : character varying
+  tenant_id_ : character varying
+}
+
+entity "act_cmmn_hi_plan_item_inst" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  name_ : character varying
+  state_ : character varying
+  case_def_id_ : character varying
+  case_inst_id_ : character varying
+  stage_inst_id_ : character varying
+  is_stage_ : boolean
+  element_id_ : character varying
+  item_definition_id_ : character varying
+  item_definition_type_ : character varying
+  create_time_ : timestamp without time zone
+  last_available_time_ : timestamp without time zone
+  last_enabled_time_ : timestamp without time zone
+  last_disabled_time_ : timestamp without time zone
+  last_started_time_ : timestamp without time zone
+  last_suspended_time_ : timestamp without time zone
+  completed_time_ : timestamp without time zone
+  occurred_time_ : timestamp without time zone
+  terminated_time_ : timestamp without time zone
+  exit_time_ : timestamp without time zone
+  ended_time_ : timestamp without time zone
+  last_updated_time_ : timestamp without time zone
+  start_user_id_ : character varying
+  reference_id_ : character varying
+  reference_type_ : character varying
+  tenant_id_ : character varying
+  entry_criterion_id_ : character varying
+  exit_criterion_id_ : character varying
+  show_in_overview_ : boolean
+  extra_value_ : character varying
+  derived_case_def_id_ : character varying
+  last_unavailable_time_ : timestamp without time zone
+}
+
+entity "act_cmmn_ru_case_inst" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  business_key_ : character varying
+  name_ : character varying
+  parent_id_ : character varying
+  case_def_id_ : character varying
+  state_ : character varying
+  start_time_ : timestamp without time zone
+  start_user_id_ : character varying
+  callback_id_ : character varying
+  callback_type_ : character varying
+  tenant_id_ : character varying
+  lock_time_ : timestamp without time zone
+  is_completeable_ : boolean
+  reference_id_ : character varying
+  reference_type_ : character varying
+  lock_owner_ : character varying
+  last_reactivation_time_ : timestamp without time zone
+  last_reactivation_user_id_ : character varying
+  business_status_ : character varying
+}
+
+entity "act_cmmn_ru_mil_inst" {
+  * id_ : character varying <<PK>>
+  name_ : character varying
+  time_stamp_ : timestamp without time zone
+  case_inst_id_ : character varying
+  case_def_id_ : character varying
+  element_id_ : character varying
+  tenant_id_ : character varying
+}
+
+entity "act_cmmn_ru_plan_item_inst" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  case_def_id_ : character varying
+  case_inst_id_ : character varying
+  stage_inst_id_ : character varying
+  is_stage_ : boolean
+  element_id_ : character varying
+  name_ : character varying
+  state_ : character varying
+  create_time_ : timestamp without time zone
+  start_user_id_ : character varying
+  reference_id_ : character varying
+  reference_type_ : character varying
+  tenant_id_ : character varying
+  item_definition_id_ : character varying
+  item_definition_type_ : character varying
+  is_completeable_ : boolean
+  is_count_enabled_ : boolean
+  var_count_ : integer
+  sentry_part_inst_count_ : integer
+  last_available_time_ : timestamp without time zone
+  last_enabled_time_ : timestamp without time zone
+  last_disabled_time_ : timestamp without time zone
+  last_started_time_ : timestamp without time zone
+  last_suspended_time_ : timestamp without time zone
+  completed_time_ : timestamp without time zone
+  occurred_time_ : timestamp without time zone
+  terminated_time_ : timestamp without time zone
+  exit_time_ : timestamp without time zone
+  ended_time_ : timestamp without time zone
+  entry_criterion_id_ : character varying
+  exit_criterion_id_ : character varying
+  extra_value_ : character varying
+  derived_case_def_id_ : character varying
+  last_unavailable_time_ : timestamp without time zone
+}
+
+entity "act_cmmn_ru_sentry_part_inst" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  case_def_id_ : character varying
+  case_inst_id_ : character varying
+  plan_item_inst_id_ : character varying
+  on_part_id_ : character varying
+  if_part_id_ : character varying
+  time_stamp_ : timestamp without time zone
+}
+
+entity "act_co_content_item" {
+  * id_ : character varying <<PK>>
+  name_ : character varying
+  mime_type_ : character varying
+  task_id_ : character varying
+  proc_inst_id_ : character varying
+  content_store_id_ : character varying
+  content_store_name_ : character varying
+  field_ : character varying
+  content_available_ : boolean
+  created_ : timestamp without time zone
+  created_by_ : character varying
+  last_modified_ : timestamp without time zone
+  last_modified_by_ : character varying
+  content_size_ : bigint
+  tenant_id_ : character varying
+  scope_id_ : character varying
+  scope_type_ : character varying
+}
+
+entity "act_co_databasechangelog" {
+  id : character varying
+  author : character varying
+  filename : character varying
+  dateexecuted : timestamp without time zone
+  orderexecuted : integer
+  exectype : character varying
+  md5sum : character varying
+  description : character varying
+  comments : character varying
+  tag : character varying
+  liquibase : character varying
+  contexts : character varying
+  labels : character varying
+  deployment_id : character varying
+}
+
+entity "act_co_databasechangeloglock" {
+  * id : integer <<PK>>
+  locked : boolean
+  lockgranted : timestamp without time zone
+  lockedby : character varying
+}
+
+entity "act_de_databasechangelog" {
+  id : character varying
+  author : character varying
+  filename : character varying
+  dateexecuted : timestamp without time zone
+  orderexecuted : integer
+  exectype : character varying
+  md5sum : character varying
+  description : character varying
+  comments : character varying
+  tag : character varying
+  liquibase : character varying
+  contexts : character varying
+  labels : character varying
+  deployment_id : character varying
+}
+
+entity "act_de_databasechangeloglock" {
+  * id : integer <<PK>>
+  locked : boolean
+  lockgranted : timestamp without time zone
+  lockedby : character varying
+}
+
+entity "act_de_model" {
+  * id : character varying <<PK>>
+  name : character varying
+  model_key : character varying
+  description : character varying
+  model_comment : character varying
+  created : timestamp without time zone
+  created_by : character varying
+  last_updated : timestamp without time zone
+  last_updated_by : character varying
+  version : integer
+  model_editor_json : text
+  thumbnail : bytea
+  model_type : integer
+  tenant_id : character varying
+}
+
+entity "act_de_model_history" {
+  * id : character varying <<PK>>
+  name : character varying
+  model_key : character varying
+  description : character varying
+  model_comment : character varying
+  created : timestamp without time zone
+  created_by : character varying
+  last_updated : timestamp without time zone
+  last_updated_by : character varying
+  removal_date : timestamp without time zone
+  version : integer
+  model_editor_json : text
+  model_id : character varying
+  model_type : integer
+  tenant_id : character varying
+}
+
+entity "act_de_model_relation" {
+  * id : character varying <<PK>>
+  parent_model_id : character varying
+  model_id : character varying
+  relation_type : character varying
+}
+
+entity "act_dmn_databasechangelog" {
+  id : character varying
+  author : character varying
+  filename : character varying
+  dateexecuted : timestamp without time zone
+  orderexecuted : integer
+  exectype : character varying
+  md5sum : character varying
+  description : character varying
+  comments : character varying
+  tag : character varying
+  liquibase : character varying
+  contexts : character varying
+  labels : character varying
+  deployment_id : character varying
+}
+
+entity "act_dmn_databasechangeloglock" {
+  * id : integer <<PK>>
+  locked : boolean
+  lockgranted : timestamp without time zone
+  lockedby : character varying
+}
+
+entity "act_dmn_decision" {
+  * id_ : character varying <<PK>>
+  name_ : character varying
+  version_ : integer
+  key_ : character varying
+  category_ : character varying
+  deployment_id_ : character varying
+  tenant_id_ : character varying
+  resource_name_ : character varying
+  description_ : character varying
+  decision_type_ : character varying
+}
+
+entity "act_dmn_deployment" {
+  * id_ : character varying <<PK>>
+  name_ : character varying
+  category_ : character varying
+  deploy_time_ : timestamp without time zone
+  tenant_id_ : character varying
+  parent_deployment_id_ : character varying
+}
+
+entity "act_dmn_deployment_resource" {
+  * id_ : character varying <<PK>>
+  name_ : character varying
+  deployment_id_ : character varying
+  resource_bytes_ : bytea
+}
+
+entity "act_dmn_hi_decision_execution" {
+  * id_ : character varying <<PK>>
+  decision_definition_id_ : character varying
+  deployment_id_ : character varying
+  start_time_ : timestamp without time zone
+  end_time_ : timestamp without time zone
+  instance_id_ : character varying
+  execution_id_ : character varying
+  activity_id_ : character varying
+  failed_ : boolean
+  tenant_id_ : character varying
+  execution_json_ : text
+  scope_type_ : character varying
+}
+
+entity "act_evt_log" {
+  * log_nr_ : serial <<PK>>
+  type_ : character varying
+  proc_def_id_ : character varying
+  proc_inst_id_ : character varying
+  execution_id_ : character varying
+  task_id_ : character varying
+  time_stamp_ : timestamp without time zone
+  user_id_ : character varying
+  data_ : bytea
+  lock_owner_ : character varying
+  lock_time_ : timestamp without time zone
+  is_processed_ : smallint
+}
+
+entity "act_fo_databasechangelog" {
+  id : character varying
+  author : character varying
+  filename : character varying
+  dateexecuted : timestamp without time zone
+  orderexecuted : integer
+  exectype : character varying
+  md5sum : character varying
+  description : character varying
+  comments : character varying
+  tag : character varying
+  liquibase : character varying
+  contexts : character varying
+  labels : character varying
+  deployment_id : character varying
+}
+
+entity "act_fo_databasechangeloglock" {
+  * id : integer <<PK>>
+  locked : boolean
+  lockgranted : timestamp without time zone
+  lockedby : character varying
+}
+
+entity "act_fo_form_definition" {
+  * id_ : character varying <<PK>>
+  name_ : character varying
+  version_ : integer
+  key_ : character varying
+  category_ : character varying
+  deployment_id_ : character varying
+  tenant_id_ : character varying
+  resource_name_ : character varying
+  description_ : character varying
+}
+
+entity "act_fo_form_deployment" {
+  * id_ : character varying <<PK>>
+  name_ : character varying
+  category_ : character varying
+  deploy_time_ : timestamp without time zone
+  tenant_id_ : character varying
+  parent_deployment_id_ : character varying
+}
+
+entity "act_fo_form_instance" {
+  * id_ : character varying <<PK>>
+  form_definition_id_ : character varying
+  task_id_ : character varying
+  proc_inst_id_ : character varying
+  proc_def_id_ : character varying
+  submitted_date_ : timestamp without time zone
+  submitted_by_ : character varying
+  form_values_id_ : character varying
+  tenant_id_ : character varying
+  scope_id_ : character varying
+  scope_type_ : character varying
+  scope_definition_id_ : character varying
+}
+
+entity "act_fo_form_resource" {
+  * id_ : character varying <<PK>>
+  name_ : character varying
+  deployment_id_ : character varying
+  resource_bytes_ : bytea
+}
+
+entity "act_ge_bytearray" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  name_ : character varying
+  deployment_id_ : character varying
+  bytes_ : bytea
+  generated_ : boolean
+}
+
+entity "act_ge_property" {
+  * name_ : character varying <<PK>>
+  value_ : character varying
+  rev_ : integer
+}
+
+entity "act_hi_actinst" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  proc_def_id_ : character varying
+  proc_inst_id_ : character varying
+  execution_id_ : character varying
+  act_id_ : character varying
+  task_id_ : character varying
+  call_proc_inst_id_ : character varying
+  act_name_ : character varying
+  act_type_ : character varying
+  assignee_ : character varying
+  start_time_ : timestamp without time zone
+  end_time_ : timestamp without time zone
+  transaction_order_ : integer
+  duration_ : bigint
+  delete_reason_ : character varying
+  tenant_id_ : character varying
+}
+
+entity "act_hi_attachment" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  user_id_ : character varying
+  name_ : character varying
+  description_ : character varying
+  type_ : character varying
+  task_id_ : character varying
+  proc_inst_id_ : character varying
+  url_ : character varying
+  content_id_ : character varying
+  time_ : timestamp without time zone
+}
+
+entity "act_hi_comment" {
+  * id_ : character varying <<PK>>
+  type_ : character varying
+  time_ : timestamp without time zone
+  user_id_ : character varying
+  task_id_ : character varying
+  proc_inst_id_ : character varying
+  action_ : character varying
+  message_ : character varying
+  full_msg_ : bytea
+}
+
+entity "act_hi_detail" {
+  * id_ : character varying <<PK>>
+  type_ : character varying
+  proc_inst_id_ : character varying
+  execution_id_ : character varying
+  task_id_ : character varying
+  act_inst_id_ : character varying
+  name_ : character varying
+  var_type_ : character varying
+  rev_ : integer
+  time_ : timestamp without time zone
+  bytearray_id_ : character varying
+  double_ : double precision
+  long_ : bigint
+  text_ : character varying
+  text2_ : character varying
+}
+
+entity "act_hi_entitylink" {
+  * id_ : character varying <<PK>>
+  link_type_ : character varying
+  create_time_ : timestamp without time zone
+  scope_id_ : character varying
+  sub_scope_id_ : character varying
+  scope_type_ : character varying
+  scope_definition_id_ : character varying
+  parent_element_id_ : character varying
+  ref_scope_id_ : character varying
+  ref_scope_type_ : character varying
+  ref_scope_definition_id_ : character varying
+  root_scope_id_ : character varying
+  root_scope_type_ : character varying
+  hierarchy_type_ : character varying
+}
+
+entity "act_hi_identitylink" {
+  * id_ : character varying <<PK>>
+  group_id_ : character varying
+  type_ : character varying
+  user_id_ : character varying
+  task_id_ : character varying
+  create_time_ : timestamp without time zone
+  proc_inst_id_ : character varying
+  scope_id_ : character varying
+  sub_scope_id_ : character varying
+  scope_type_ : character varying
+  scope_definition_id_ : character varying
+}
+
+entity "act_hi_procinst" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  proc_inst_id_ : character varying
+  business_key_ : character varying
+  proc_def_id_ : character varying
+  start_time_ : timestamp without time zone
+  end_time_ : timestamp without time zone
+  duration_ : bigint
+  start_user_id_ : character varying
+  start_act_id_ : character varying
+  end_act_id_ : character varying
+  super_process_instance_id_ : character varying
+  delete_reason_ : character varying
+  tenant_id_ : character varying
+  name_ : character varying
+  callback_id_ : character varying
+  callback_type_ : character varying
+  reference_id_ : character varying
+  reference_type_ : character varying
+  propagated_stage_inst_id_ : character varying
+  business_status_ : character varying
+}
+
+entity "act_hi_taskinst" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  proc_def_id_ : character varying
+  task_def_id_ : character varying
+  task_def_key_ : character varying
+  proc_inst_id_ : character varying
+  execution_id_ : character varying
+  scope_id_ : character varying
+  sub_scope_id_ : character varying
+  scope_type_ : character varying
+  scope_definition_id_ : character varying
+  propagated_stage_inst_id_ : character varying
+  name_ : character varying
+  parent_task_id_ : character varying
+  description_ : character varying
+  owner_ : character varying
+  assignee_ : character varying
+  start_time_ : timestamp without time zone
+  claim_time_ : timestamp without time zone
+  end_time_ : timestamp without time zone
+  duration_ : bigint
+  delete_reason_ : character varying
+  priority_ : integer
+  due_date_ : timestamp without time zone
+  form_key_ : character varying
+  category_ : character varying
+  tenant_id_ : character varying
+  last_updated_time_ : timestamp without time zone
+  state_ : character varying
+  in_progress_time_ : timestamp without time zone
+  in_progress_started_by_ : character varying
+  claimed_by_ : character varying
+  suspended_time_ : timestamp without time zone
+  suspended_by_ : character varying
+  completed_by_ : character varying
+  in_progress_due_date_ : timestamp without time zone
+}
+
+entity "act_hi_tsk_log" {
+  * id_ : serial <<PK>>
+  type_ : character varying
+  task_id_ : character varying
+  time_stamp_ : timestamp without time zone
+  user_id_ : character varying
+  data_ : character varying
+  execution_id_ : character varying
+  proc_inst_id_ : character varying
+  proc_def_id_ : character varying
+  scope_id_ : character varying
+  scope_definition_id_ : character varying
+  sub_scope_id_ : character varying
+  scope_type_ : character varying
+  tenant_id_ : character varying
+}
+
+entity "act_hi_varinst" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  proc_inst_id_ : character varying
+  execution_id_ : character varying
+  task_id_ : character varying
+  name_ : character varying
+  var_type_ : character varying
+  scope_id_ : character varying
+  sub_scope_id_ : character varying
+  scope_type_ : character varying
+  bytearray_id_ : character varying
+  double_ : double precision
+  long_ : bigint
+  text_ : character varying
+  text2_ : character varying
+  create_time_ : timestamp without time zone
+  last_updated_time_ : timestamp without time zone
+  meta_info_ : character varying
+}
+
+entity "act_id_bytearray" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  name_ : character varying
+  bytes_ : bytea
+}
+
+entity "act_id_group" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  name_ : character varying
+  type_ : character varying
+}
+
+entity "act_id_info" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  user_id_ : character varying
+  type_ : character varying
+  key_ : character varying
+  value_ : character varying
+  password_ : bytea
+  parent_id_ : character varying
+}
+
+entity "act_id_membership" {
+  * user_id_ : character varying <<PK>>
+  * group_id_ : character varying <<PK>>
+}
+
+entity "act_id_priv" {
+  * id_ : character varying <<PK>>
+  name_ : character varying
+}
+
+entity "act_id_priv_mapping" {
+  * id_ : character varying <<PK>>
+  priv_id_ : character varying
+  user_id_ : character varying
+  group_id_ : character varying
+}
+
+entity "act_id_property" {
+  * name_ : character varying <<PK>>
+  value_ : character varying
+  rev_ : integer
+}
+
+entity "act_id_token" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  token_value_ : character varying
+  token_date_ : timestamp without time zone
+  ip_address_ : character varying
+  user_agent_ : character varying
+  user_id_ : character varying
+  token_data_ : character varying
+}
+
+entity "act_id_user" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  first_ : character varying
+  last_ : character varying
+  display_name_ : character varying
+  email_ : character varying
+  pwd_ : character varying
+  picture_id_ : character varying
+  tenant_id_ : character varying
+}
+
+entity "act_procdef_info" {
+  * id_ : character varying <<PK>>
+  proc_def_id_ : character varying
+  rev_ : integer
+  info_json_id_ : character varying
+}
+
+entity "act_re_deployment" {
+  * id_ : character varying <<PK>>
+  name_ : character varying
+  category_ : character varying
+  key_ : character varying
+  tenant_id_ : character varying
+  deploy_time_ : timestamp without time zone
+  derived_from_ : character varying
+  derived_from_root_ : character varying
+  parent_deployment_id_ : character varying
+  engine_version_ : character varying
+}
+
+entity "act_re_model" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  name_ : character varying
+  key_ : character varying
+  category_ : character varying
+  create_time_ : timestamp without time zone
+  last_update_time_ : timestamp without time zone
+  version_ : integer
+  meta_info_ : character varying
+  deployment_id_ : character varying
+  editor_source_value_id_ : character varying
+  editor_source_extra_value_id_ : character varying
+  tenant_id_ : character varying
+}
+
+entity "act_re_procdef" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  category_ : character varying
+  name_ : character varying
+  key_ : character varying
+  version_ : integer
+  deployment_id_ : character varying
+  resource_name_ : character varying
+  dgrm_resource_name_ : character varying
+  description_ : character varying
+  has_start_form_key_ : boolean
+  has_graphical_notation_ : boolean
+  suspension_state_ : integer
+  tenant_id_ : character varying
+  derived_from_ : character varying
+  derived_from_root_ : character varying
+  derived_version_ : integer
+  engine_version_ : character varying
+}
+
+entity "act_ru_actinst" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  proc_def_id_ : character varying
+  proc_inst_id_ : character varying
+  execution_id_ : character varying
+  act_id_ : character varying
+  task_id_ : character varying
+  call_proc_inst_id_ : character varying
+  act_name_ : character varying
+  act_type_ : character varying
+  assignee_ : character varying
+  start_time_ : timestamp without time zone
+  end_time_ : timestamp without time zone
+  duration_ : bigint
+  transaction_order_ : integer
+  delete_reason_ : character varying
+  tenant_id_ : character varying
+}
+
+entity "act_ru_deadletter_job" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  category_ : character varying
+  type_ : character varying
+  exclusive_ : boolean
+  execution_id_ : character varying
+  process_instance_id_ : character varying
+  proc_def_id_ : character varying
+  element_id_ : character varying
+  element_name_ : character varying
+  scope_id_ : character varying
+  sub_scope_id_ : character varying
+  scope_type_ : character varying
+  scope_definition_id_ : character varying
+  correlation_id_ : character varying
+  exception_stack_id_ : character varying
+  exception_msg_ : character varying
+  duedate_ : timestamp without time zone
+  repeat_ : character varying
+  handler_type_ : character varying
+  handler_cfg_ : character varying
+  custom_values_id_ : character varying
+  create_time_ : timestamp without time zone
+  tenant_id_ : character varying
+}
+
+entity "act_ru_entitylink" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  create_time_ : timestamp without time zone
+  link_type_ : character varying
+  scope_id_ : character varying
+  sub_scope_id_ : character varying
+  scope_type_ : character varying
+  scope_definition_id_ : character varying
+  parent_element_id_ : character varying
+  ref_scope_id_ : character varying
+  ref_scope_type_ : character varying
+  ref_scope_definition_id_ : character varying
+  root_scope_id_ : character varying
+  root_scope_type_ : character varying
+  hierarchy_type_ : character varying
+}
+
+entity "act_ru_event_subscr" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  event_type_ : character varying
+  event_name_ : character varying
+  execution_id_ : character varying
+  proc_inst_id_ : character varying
+  activity_id_ : character varying
+  configuration_ : character varying
+  created_ : timestamp without time zone
+  proc_def_id_ : character varying
+  sub_scope_id_ : character varying
+  scope_id_ : character varying
+  scope_definition_id_ : character varying
+  scope_type_ : character varying
+  lock_time_ : timestamp without time zone
+  lock_owner_ : character varying
+  tenant_id_ : character varying
+  scope_definition_key_ : character varying
+}
+
+entity "act_ru_execution" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  proc_inst_id_ : character varying
+  business_key_ : character varying
+  parent_id_ : character varying
+  proc_def_id_ : character varying
+  super_exec_ : character varying
+  root_proc_inst_id_ : character varying
+  act_id_ : character varying
+  is_active_ : boolean
+  is_concurrent_ : boolean
+  is_scope_ : boolean
+  is_event_scope_ : boolean
+  is_mi_root_ : boolean
+  suspension_state_ : integer
+  cached_ent_state_ : integer
+  tenant_id_ : character varying
+  name_ : character varying
+  start_act_id_ : character varying
+  start_time_ : timestamp without time zone
+  start_user_id_ : character varying
+  lock_time_ : timestamp without time zone
+  lock_owner_ : character varying
+  is_count_enabled_ : boolean
+  evt_subscr_count_ : integer
+  task_count_ : integer
+  job_count_ : integer
+  timer_job_count_ : integer
+  susp_job_count_ : integer
+  deadletter_job_count_ : integer
+  external_worker_job_count_ : integer
+  var_count_ : integer
+  id_link_count_ : integer
+  callback_id_ : character varying
+  callback_type_ : character varying
+  reference_id_ : character varying
+  reference_type_ : character varying
+  propagated_stage_inst_id_ : character varying
+  business_status_ : character varying
+}
+
+entity "act_ru_external_job" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  category_ : character varying
+  type_ : character varying
+  lock_exp_time_ : timestamp without time zone
+  lock_owner_ : character varying
+  exclusive_ : boolean
+  execution_id_ : character varying
+  process_instance_id_ : character varying
+  proc_def_id_ : character varying
+  element_id_ : character varying
+  element_name_ : character varying
+  scope_id_ : character varying
+  sub_scope_id_ : character varying
+  scope_type_ : character varying
+  scope_definition_id_ : character varying
+  correlation_id_ : character varying
+  retries_ : integer
+  exception_stack_id_ : character varying
+  exception_msg_ : character varying
+  duedate_ : timestamp without time zone
+  repeat_ : character varying
+  handler_type_ : character varying
+  handler_cfg_ : character varying
+  custom_values_id_ : character varying
+  create_time_ : timestamp without time zone
+  tenant_id_ : character varying
+}
+
+entity "act_ru_history_job" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  lock_exp_time_ : timestamp without time zone
+  lock_owner_ : character varying
+  retries_ : integer
+  exception_stack_id_ : character varying
+  exception_msg_ : character varying
+  handler_type_ : character varying
+  handler_cfg_ : character varying
+  custom_values_id_ : character varying
+  adv_handler_cfg_id_ : character varying
+  create_time_ : timestamp without time zone
+  scope_type_ : character varying
+  tenant_id_ : character varying
+}
+
+entity "act_ru_identitylink" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  group_id_ : character varying
+  type_ : character varying
+  user_id_ : character varying
+  task_id_ : character varying
+  proc_inst_id_ : character varying
+  proc_def_id_ : character varying
+  scope_id_ : character varying
+  sub_scope_id_ : character varying
+  scope_type_ : character varying
+  scope_definition_id_ : character varying
+}
+
+entity "act_ru_job" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  category_ : character varying
+  type_ : character varying
+  lock_exp_time_ : timestamp without time zone
+  lock_owner_ : character varying
+  exclusive_ : boolean
+  execution_id_ : character varying
+  process_instance_id_ : character varying
+  proc_def_id_ : character varying
+  element_id_ : character varying
+  element_name_ : character varying
+  scope_id_ : character varying
+  sub_scope_id_ : character varying
+  scope_type_ : character varying
+  scope_definition_id_ : character varying
+  correlation_id_ : character varying
+  retries_ : integer
+  exception_stack_id_ : character varying
+  exception_msg_ : character varying
+  duedate_ : timestamp without time zone
+  repeat_ : character varying
+  handler_type_ : character varying
+  handler_cfg_ : character varying
+  custom_values_id_ : character varying
+  create_time_ : timestamp without time zone
+  tenant_id_ : character varying
+}
+
+entity "act_ru_suspended_job" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  category_ : character varying
+  type_ : character varying
+  exclusive_ : boolean
+  execution_id_ : character varying
+  process_instance_id_ : character varying
+  proc_def_id_ : character varying
+  element_id_ : character varying
+  element_name_ : character varying
+  scope_id_ : character varying
+  sub_scope_id_ : character varying
+  scope_type_ : character varying
+  scope_definition_id_ : character varying
+  correlation_id_ : character varying
+  retries_ : integer
+  exception_stack_id_ : character varying
+  exception_msg_ : character varying
+  duedate_ : timestamp without time zone
+  repeat_ : character varying
+  handler_type_ : character varying
+  handler_cfg_ : character varying
+  custom_values_id_ : character varying
+  create_time_ : timestamp without time zone
+  tenant_id_ : character varying
+}
+
+entity "act_ru_task" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  execution_id_ : character varying
+  proc_inst_id_ : character varying
+  proc_def_id_ : character varying
+  task_def_id_ : character varying
+  scope_id_ : character varying
+  sub_scope_id_ : character varying
+  scope_type_ : character varying
+  scope_definition_id_ : character varying
+  propagated_stage_inst_id_ : character varying
+  name_ : character varying
+  parent_task_id_ : character varying
+  description_ : character varying
+  task_def_key_ : character varying
+  owner_ : character varying
+  assignee_ : character varying
+  delegation_ : character varying
+  priority_ : integer
+  create_time_ : timestamp without time zone
+  due_date_ : timestamp without time zone
+  category_ : character varying
+  suspension_state_ : integer
+  tenant_id_ : character varying
+  form_key_ : character varying
+  claim_time_ : timestamp without time zone
+  is_count_enabled_ : boolean
+  var_count_ : integer
+  id_link_count_ : integer
+  sub_task_count_ : integer
+  state_ : character varying
+  in_progress_time_ : timestamp without time zone
+  in_progress_started_by_ : character varying
+  claimed_by_ : character varying
+  suspended_time_ : timestamp without time zone
+  suspended_by_ : character varying
+  in_progress_due_date_ : timestamp without time zone
+}
+
+entity "act_ru_timer_job" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  category_ : character varying
+  type_ : character varying
+  lock_exp_time_ : timestamp without time zone
+  lock_owner_ : character varying
+  exclusive_ : boolean
+  execution_id_ : character varying
+  process_instance_id_ : character varying
+  proc_def_id_ : character varying
+  element_id_ : character varying
+  element_name_ : character varying
+  scope_id_ : character varying
+  sub_scope_id_ : character varying
+  scope_type_ : character varying
+  scope_definition_id_ : character varying
+  correlation_id_ : character varying
+  retries_ : integer
+  exception_stack_id_ : character varying
+  exception_msg_ : character varying
+  duedate_ : timestamp without time zone
+  repeat_ : character varying
+  handler_type_ : character varying
+  handler_cfg_ : character varying
+  custom_values_id_ : character varying
+  create_time_ : timestamp without time zone
+  tenant_id_ : character varying
+}
+
+entity "act_ru_variable" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  type_ : character varying
+  name_ : character varying
+  execution_id_ : character varying
+  proc_inst_id_ : character varying
+  task_id_ : character varying
+  scope_id_ : character varying
+  sub_scope_id_ : character varying
+  scope_type_ : character varying
+  bytearray_id_ : character varying
+  double_ : double precision
+  long_ : bigint
+  text_ : character varying
+  text2_ : character varying
+  meta_info_ : character varying
+}
+
+entity "admin_event_entity" {
+  * id : character varying <<PK>>
+  admin_event_time : bigint
+  realm_id : character varying
+  operation_type : character varying
+  auth_realm_id : character varying
+  auth_client_id : character varying
+  auth_user_id : character varying
+  ip_address : character varying
+  resource_path : character varying
+  representation : text
+  error : character varying
+  resource_type : character varying
+}
+
+entity "associated_policy" {
+  * policy_id : character varying <<PK>>
+  * associated_policy_id : character varying <<PK>>
+}
+
+entity "attachments" {
+  * id : bigserial <<PK>>
+  content_type : character varying
+  file_path : character varying
+  file_size : character varying
+  filename : character varying
+  incident_id : bigint
+}
+
+entity "authentication_execution" {
+  * id : character varying <<PK>>
+  alias : character varying
+  authenticator : character varying
+  realm_id : character varying
+  flow_id : character varying
+  requirement : integer
+  priority : integer
+  authenticator_flow : boolean
+  auth_flow_id : character varying
+  auth_config : character varying
+}
+
+entity "authentication_flow" {
+  * id : character varying <<PK>>
+  alias : character varying
+  description : character varying
+  realm_id : character varying
+  provider_id : character varying
+  top_level : boolean
+  built_in : boolean
+}
+
+entity "authenticator_config" {
+  * id : character varying <<PK>>
+  alias : character varying
+  realm_id : character varying
+}
+
+entity "authenticator_config_entry" {
+  * authenticator_id : character varying <<PK>>
+  value : text
+  * name : character varying <<PK>>
+}
+
+entity "broker_link" {
+  * identity_provider : character varying <<PK>>
+  storage_provider_id : character varying
+  realm_id : character varying
+  broker_user_id : character varying
+  broker_username : character varying
+  token : text
+  * user_id : character varying <<PK>>
+}
+
+entity "client" {
+  * id : character varying <<PK>>
+  enabled : boolean
+  full_scope_allowed : boolean
+  client_id : character varying
+  not_before : integer
+  public_client : boolean
+  secret : character varying
+  base_url : character varying
+  bearer_only : boolean
+  management_url : character varying
+  surrogate_auth_required : boolean
+  realm_id : character varying
+  protocol : character varying
+  node_rereg_timeout : integer
+  frontchannel_logout : boolean
+  consent_required : boolean
+  name : character varying
+  service_accounts_enabled : boolean
+  client_authenticator_type : character varying
+  root_url : character varying
+  description : character varying
+  registration_token : character varying
+  standard_flow_enabled : boolean
+  implicit_flow_enabled : boolean
+  direct_access_grants_enabled : boolean
+  always_display_in_console : boolean
+}
+
+entity "client_attributes" {
+  * client_id : character varying <<PK>>
+  * name : character varying <<PK>>
+  value : text
+}
+
+entity "client_auth_flow_bindings" {
+  * client_id : character varying <<PK>>
+  flow_id : character varying
+  * binding_name : character varying <<PK>>
+}
+
+entity "client_initial_access" {
+  * id : character varying <<PK>>
+  realm_id : character varying
+  timestamp : integer
+  expiration : integer
+  count : integer
+  remaining_count : integer
+}
+
+entity "client_node_registrations" {
+  * client_id : character varying <<PK>>
+  value : integer
+  * name : character varying <<PK>>
+}
+
+entity "client_scope" {
+  * id : character varying <<PK>>
+  name : character varying
+  realm_id : character varying
+  description : character varying
+  protocol : character varying
+}
+
+entity "client_scope_attributes" {
+  * scope_id : character varying <<PK>>
+  value : character varying
+  * name : character varying <<PK>>
+}
+
+entity "client_scope_client" {
+  * client_id : character varying <<PK>>
+  * scope_id : character varying <<PK>>
+  default_scope : boolean
+}
+
+entity "client_scope_role_mapping" {
+  * scope_id : character varying <<PK>>
+  * role_id : character varying <<PK>>
+}
+
+entity "client_session" {
+  * id : character varying <<PK>>
+  client_id : character varying
+  redirect_uri : character varying
+  state : character varying
+  timestamp : integer
+  session_id : character varying
+  auth_method : character varying
+  realm_id : character varying
+  auth_user_id : character varying
+  current_action : character varying
+}
+
+entity "client_session_auth_status" {
+  * authenticator : character varying <<PK>>
+  status : integer
+  * client_session : character varying <<PK>>
+}
+
+entity "client_session_note" {
+  * name : character varying <<PK>>
+  value : character varying
+  * client_session : character varying <<PK>>
+}
+
+entity "client_session_prot_mapper" {
+  * protocol_mapper_id : character varying <<PK>>
+  * client_session : character varying <<PK>>
+}
+
+entity "client_session_role" {
+  * role_id : character varying <<PK>>
+  * client_session : character varying <<PK>>
+}
+
+entity "client_user_session_note" {
+  * name : character varying <<PK>>
+  value : character varying
+  * client_session : character varying <<PK>>
+}
+
+entity "comments" {
+  * id : bigserial <<PK>>
+  content : text
+  date : timestamp without time zone
+  author_id : bigint
+  incident_id : bigint
+}
+
+entity "component" {
+  * id : character varying <<PK>>
+  name : character varying
+  parent_id : character varying
+  provider_id : character varying
+  provider_type : character varying
+  realm_id : character varying
+  sub_type : character varying
+}
+
+entity "component_config" {
+  * id : character varying <<PK>>
+  component_id : character varying
+  name : character varying
+  value : character varying
+}
+
+entity "composite_role" {
+  * composite : character varying <<PK>>
+  * child_role : character varying <<PK>>
+}
+
+entity "credential" {
+  * id : character varying <<PK>>
+  salt : bytea
+  type : character varying
+  user_id : character varying
+  created_date : bigint
+  user_label : character varying
+  secret_data : text
+  credential_data : text
+  priority : integer
+}
+
+entity "databasechangelog" {
+  id : character varying
+  author : character varying
+  filename : character varying
+  dateexecuted : timestamp without time zone
+  orderexecuted : integer
+  exectype : character varying
+  md5sum : character varying
+  description : character varying
+  comments : character varying
+  tag : character varying
+  liquibase : character varying
+  contexts : character varying
+  labels : character varying
+  deployment_id : character varying
+}
+
+entity "databasechangeloglock" {
+  * id : integer <<PK>>
+  locked : boolean
+  lockgranted : timestamp without time zone
+  lockedby : character varying
+}
+
+entity "default_client_scope" {
+  * realm_id : character varying <<PK>>
+  * scope_id : character varying <<PK>>
+  default_scope : boolean
+}
+
+entity "event_entity" {
+  * id : character varying <<PK>>
+  client_id : character varying
+  details_json : character varying
+  error : character varying
+  ip_address : character varying
+  realm_id : character varying
+  session_id : character varying
+  event_time : bigint
+  type : character varying
+  user_id : character varying
+}
+
+entity "fed_user_attribute" {
+  * id : character varying <<PK>>
+  name : character varying
+  user_id : character varying
+  realm_id : character varying
+  storage_provider_id : character varying
+  value : character varying
+}
+
+entity "fed_user_consent" {
+  * id : character varying <<PK>>
+  client_id : character varying
+  user_id : character varying
+  realm_id : character varying
+  storage_provider_id : character varying
+  created_date : bigint
+  last_updated_date : bigint
+  client_storage_provider : character varying
+  external_client_id : character varying
+}
+
+entity "fed_user_consent_cl_scope" {
+  * user_consent_id : character varying <<PK>>
+  * scope_id : character varying <<PK>>
+}
+
+entity "fed_user_credential" {
+  * id : character varying <<PK>>
+  salt : bytea
+  type : character varying
+  created_date : bigint
+  user_id : character varying
+  realm_id : character varying
+  storage_provider_id : character varying
+  user_label : character varying
+  secret_data : text
+  credential_data : text
+  priority : integer
+}
+
+entity "fed_user_group_membership" {
+  * group_id : character varying <<PK>>
+  * user_id : character varying <<PK>>
+  realm_id : character varying
+  storage_provider_id : character varying
+}
+
+entity "fed_user_required_action" {
+  * required_action : character varying <<PK>>
+  * user_id : character varying <<PK>>
+  realm_id : character varying
+  storage_provider_id : character varying
+}
+
+entity "fed_user_role_mapping" {
+  * role_id : character varying <<PK>>
+  * user_id : character varying <<PK>>
+  realm_id : character varying
+  storage_provider_id : character varying
+}
+
+entity "federated_identity" {
+  * identity_provider : character varying <<PK>>
+  realm_id : character varying
+  federated_user_id : character varying
+  federated_username : character varying
+  token : text
+  * user_id : character varying <<PK>>
+}
+
+entity "federated_user" {
+  * id : character varying <<PK>>
+  storage_provider_id : character varying
+  realm_id : character varying
+}
+
+entity "flw_channel_definition" {
+  * id_ : character varying <<PK>>
+  name_ : character varying
+  version_ : integer
+  key_ : character varying
+  category_ : character varying
+  deployment_id_ : character varying
+  create_time_ : timestamp without time zone
+  tenant_id_ : character varying
+  resource_name_ : character varying
+  description_ : character varying
+  type_ : character varying
+  implementation_ : character varying
+}
+
+entity "flw_ev_databasechangelog" {
+  id : character varying
+  author : character varying
+  filename : character varying
+  dateexecuted : timestamp without time zone
+  orderexecuted : integer
+  exectype : character varying
+  md5sum : character varying
+  description : character varying
+  comments : character varying
+  tag : character varying
+  liquibase : character varying
+  contexts : character varying
+  labels : character varying
+  deployment_id : character varying
+}
+
+entity "flw_ev_databasechangeloglock" {
+  * id : integer <<PK>>
+  locked : boolean
+  lockgranted : timestamp without time zone
+  lockedby : character varying
+}
+
+entity "flw_event_definition" {
+  * id_ : character varying <<PK>>
+  name_ : character varying
+  version_ : integer
+  key_ : character varying
+  category_ : character varying
+  deployment_id_ : character varying
+  tenant_id_ : character varying
+  resource_name_ : character varying
+  description_ : character varying
+}
+
+entity "flw_event_deployment" {
+  * id_ : character varying <<PK>>
+  name_ : character varying
+  category_ : character varying
+  deploy_time_ : timestamp without time zone
+  tenant_id_ : character varying
+  parent_deployment_id_ : character varying
+}
+
+entity "flw_event_resource" {
+  * id_ : character varying <<PK>>
+  name_ : character varying
+  deployment_id_ : character varying
+  resource_bytes_ : bytea
+}
+
+entity "flw_ru_batch" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  type_ : character varying
+  search_key_ : character varying
+  search_key2_ : character varying
+  create_time_ : timestamp without time zone
+  complete_time_ : timestamp without time zone
+  status_ : character varying
+  batch_doc_id_ : character varying
+  tenant_id_ : character varying
+}
+
+entity "flw_ru_batch_part" {
+  * id_ : character varying <<PK>>
+  rev_ : integer
+  batch_id_ : character varying
+  type_ : character varying
+  scope_id_ : character varying
+  sub_scope_id_ : character varying
+  scope_type_ : character varying
+  search_key_ : character varying
+  search_key2_ : character varying
+  create_time_ : timestamp without time zone
+  complete_time_ : timestamp without time zone
+  status_ : character varying
+  result_doc_id_ : character varying
+  tenant_id_ : character varying
+}
+
+entity "group_attribute" {
+  * id : character varying <<PK>>
+  name : character varying
+  value : character varying
+  group_id : character varying
+}
+
+entity "group_role_mapping" {
+  * role_id : character varying <<PK>>
+  * group_id : character varying <<PK>>
+}
+
+entity "identity_provider" {
+  * internal_id : character varying <<PK>>
+  enabled : boolean
+  provider_alias : character varying
+  provider_id : character varying
+  store_token : boolean
+  authenticate_by_default : boolean
+  realm_id : character varying
+  add_token_role : boolean
+  trust_email : boolean
+  first_broker_login_flow_id : character varying
+  post_broker_login_flow_id : character varying
+  provider_display_name : character varying
+  link_only : boolean
+}
+
+entity "identity_provider_config" {
+  * identity_provider_id : character varying <<PK>>
+  value : text
+  * name : character varying <<PK>>
+}
+
+entity "identity_provider_mapper" {
+  * id : character varying <<PK>>
+  name : character varying
+  idp_alias : character varying
+  idp_mapper_name : character varying
+  realm_id : character varying
+}
+
+entity "idp_mapper_config" {
+  * idp_mapper_id : character varying <<PK>>
+  value : text
+  * name : character varying <<PK>>
+}
+
+entity "incident_histories" {
+  * id : bigserial <<PK>>
+  action : character varying
+  date : timestamp without time zone
+  username : character varying
+  incident_id : bigint
+}
+
+entity "incidents" {
+  * id : bigserial <<PK>>
+  category : character varying
+  created_at : timestamp without time zone
+  description : text
+  escalated : boolean
+  incident_code : character varying
+  priority : character varying
+  process_instance_id : character varying
+  severity : character varying
+  sla_due_at : timestamp without time zone
+  status : character varying
+  title : character varying
+  updated_at : timestamp without time zone
+  assigned_to_id : bigint
+  author_id : bigint
+  workflow_id : bigint
+}
+
+entity "keycloak_group" {
+  * id : character varying <<PK>>
+  name : character varying
+  parent_group : character varying
+  realm_id : character varying
+}
+
+entity "keycloak_role" {
+  * id : character varying <<PK>>
+  client_realm_constraint : character varying
+  client_role : boolean
+  description : character varying
+  name : character varying
+  realm_id : character varying
+  client : character varying
+  realm : character varying
+}
+
+entity "migration_model" {
+  * id : character varying <<PK>>
+  version : character varying
+  update_time : bigint
+}
+
+entity "offline_client_session" {
+  * user_session_id : character varying <<PK>>
+  * client_id : character varying <<PK>>
+  * offline_flag : character varying <<PK>>
+  timestamp : integer
+  data : text
+  * client_storage_provider : character varying <<PK>>
+  * external_client_id : character varying <<PK>>
+}
+
+entity "offline_user_session" {
+  * user_session_id : character varying <<PK>>
+  user_id : character varying
+  realm_id : character varying
+  created_on : integer
+  * offline_flag : character varying <<PK>>
+  data : text
+  last_session_refresh : integer
+}
+
+entity "permissions" {
+  * id : bigserial <<PK>>
+  code : character varying
+  description : character varying
+  label : character varying
+  module : character varying
+}
+
+entity "policy_config" {
+  * policy_id : character varying <<PK>>
+  * name : character varying <<PK>>
+  value : text
+}
+
+entity "protocol_mapper" {
+  * id : character varying <<PK>>
+  name : character varying
+  protocol : character varying
+  protocol_mapper_name : character varying
+  client_id : character varying
+  client_scope_id : character varying
+}
+
+entity "protocol_mapper_config" {
+  * protocol_mapper_id : character varying <<PK>>
+  value : text
+  * name : character varying <<PK>>
+}
+
+entity "realm" {
+  * id : character varying <<PK>>
+  access_code_lifespan : integer
+  user_action_lifespan : integer
+  access_token_lifespan : integer
+  account_theme : character varying
+  admin_theme : character varying
+  email_theme : character varying
+  enabled : boolean
+  events_enabled : boolean
+  events_expiration : bigint
+  login_theme : character varying
+  name : character varying
+  not_before : integer
+  password_policy : character varying
+  registration_allowed : boolean
+  remember_me : boolean
+  reset_password_allowed : boolean
+  social : boolean
+  ssl_required : character varying
+  sso_idle_timeout : integer
+  sso_max_lifespan : integer
+  update_profile_on_soc_login : boolean
+  verify_email : boolean
+  master_admin_client : character varying
+  login_lifespan : integer
+  internationalization_enabled : boolean
+  default_locale : character varying
+  reg_email_as_username : boolean
+  admin_events_enabled : boolean
+  admin_events_details_enabled : boolean
+  edit_username_allowed : boolean
+  otp_policy_counter : integer
+  otp_policy_window : integer
+  otp_policy_period : integer
+  otp_policy_digits : integer
+  otp_policy_alg : character varying
+  otp_policy_type : character varying
+  browser_flow : character varying
+  registration_flow : character varying
+  direct_grant_flow : character varying
+  reset_credentials_flow : character varying
+  client_auth_flow : character varying
+  offline_session_idle_timeout : integer
+  revoke_refresh_token : boolean
+  access_token_life_implicit : integer
+  login_with_email_allowed : boolean
+  duplicate_emails_allowed : boolean
+  docker_auth_flow : character varying
+  refresh_token_max_reuse : integer
+  allow_user_managed_access : boolean
+  sso_max_lifespan_remember_me : integer
+  sso_idle_timeout_remember_me : integer
+  default_role : character varying
+}
+
+entity "realm_attribute" {
+  * name : character varying <<PK>>
+  * realm_id : character varying <<PK>>
+  value : text
+}
+
+entity "realm_default_groups" {
+  * realm_id : character varying <<PK>>
+  * group_id : character varying <<PK>>
+}
+
+entity "realm_enabled_event_types" {
+  * realm_id : character varying <<PK>>
+  * value : character varying <<PK>>
+}
+
+entity "realm_events_listeners" {
+  * realm_id : character varying <<PK>>
+  * value : character varying <<PK>>
+}
+
+entity "realm_localizations" {
+  * realm_id : character varying <<PK>>
+  * locale : character varying <<PK>>
+  texts : text
+}
+
+entity "realm_required_credential" {
+  * type : character varying <<PK>>
+  form_label : character varying
+  input : boolean
+  secret : boolean
+  * realm_id : character varying <<PK>>
+}
+
+entity "realm_smtp_config" {
+  * realm_id : character varying <<PK>>
+  value : character varying
+  * name : character varying <<PK>>
+}
+
+entity "realm_supported_locales" {
+  * realm_id : character varying <<PK>>
+  * value : character varying <<PK>>
+}
+
+entity "redirect_uris" {
+  * client_id : character varying <<PK>>
+  * value : character varying <<PK>>
+}
+
+entity "required_action_config" {
+  * required_action_id : character varying <<PK>>
+  value : text
+  * name : character varying <<PK>>
+}
+
+entity "required_action_provider" {
+  * id : character varying <<PK>>
+  alias : character varying
+  name : character varying
+  realm_id : character varying
+  enabled : boolean
+  default_action : boolean
+  provider_id : character varying
+  priority : integer
+}
+
+entity "resource_attribute" {
+  * id : character varying <<PK>>
+  name : character varying
+  value : character varying
+  resource_id : character varying
+}
+
+entity "resource_policy" {
+  * resource_id : character varying <<PK>>
+  * policy_id : character varying <<PK>>
+}
+
+entity "resource_scope" {
+  * resource_id : character varying <<PK>>
+  * scope_id : character varying <<PK>>
+}
+
+entity "resource_server" {
+  * id : character varying <<PK>>
+  allow_rs_remote_mgmt : boolean
+  policy_enforce_mode : smallint
+  decision_strategy : smallint
+}
+
+entity "resource_server_perm_ticket" {
+  * id : character varying <<PK>>
+  owner : character varying
+  requester : character varying
+  created_timestamp : bigint
+  granted_timestamp : bigint
+  resource_id : character varying
+  scope_id : character varying
+  resource_server_id : character varying
+  policy_id : character varying
+}
+
+entity "resource_server_policy" {
+  * id : character varying <<PK>>
+  name : character varying
+  description : character varying
+  type : character varying
+  decision_strategy : smallint
+  logic : smallint
+  resource_server_id : character varying
+  owner : character varying
+}
+
+entity "resource_server_resource" {
+  * id : character varying <<PK>>
+  name : character varying
+  type : character varying
+  icon_uri : character varying
+  owner : character varying
+  resource_server_id : character varying
+  owner_managed_access : boolean
+  display_name : character varying
+}
+
+entity "resource_server_scope" {
+  * id : character varying <<PK>>
+  name : character varying
+  icon_uri : character varying
+  resource_server_id : character varying
+  display_name : character varying
+}
+
+entity "resource_uris" {
+  * resource_id : character varying <<PK>>
+  * value : character varying <<PK>>
+}
+
+entity "role_attribute" {
+  * id : character varying <<PK>>
+  role_id : character varying
+  name : character varying
+  value : character varying
+}
+
+entity "role_permissions" {
+  * role_id : bigint <<PK>>
+  * permission_id : bigint <<PK>>
+}
+
+entity "roles" {
+  * id : bigserial <<PK>>
+  description : character varying
+  name : character varying
+}
+
+entity "scope_mapping" {
+  * client_id : character varying <<PK>>
+  * role_id : character varying <<PK>>
+}
+
+entity "scope_policy" {
+  * scope_id : character varying <<PK>>
+  * policy_id : character varying <<PK>>
+}
+
+entity "user_attribute" {
+  name : character varying
+  value : character varying
+  user_id : character varying
+  * id : character varying <<PK>>
+}
+
+entity "user_consent" {
+  * id : character varying <<PK>>
+  client_id : character varying
+  user_id : character varying
+  created_date : bigint
+  last_updated_date : bigint
+  client_storage_provider : character varying
+  external_client_id : character varying
+}
+
+entity "user_consent_client_scope" {
+  * user_consent_id : character varying <<PK>>
+  * scope_id : character varying <<PK>>
+}
+
+entity "user_entity" {
+  * id : character varying <<PK>>
+  email : character varying
+  email_constraint : character varying
+  email_verified : boolean
+  enabled : boolean
+  federation_link : character varying
+  first_name : character varying
+  last_name : character varying
+  realm_id : character varying
+  username : character varying
+  created_timestamp : bigint
+  service_account_client_link : character varying
+  not_before : integer
+}
+
+entity "user_federation_config" {
+  * user_federation_provider_id : character varying <<PK>>
+  value : character varying
+  * name : character varying <<PK>>
+}
+
+entity "user_federation_mapper" {
+  * id : character varying <<PK>>
+  name : character varying
+  federation_provider_id : character varying
+  federation_mapper_type : character varying
+  realm_id : character varying
+}
+
+entity "user_federation_mapper_config" {
+  * user_federation_mapper_id : character varying <<PK>>
+  value : character varying
+  * name : character varying <<PK>>
+}
+
+entity "user_federation_provider" {
+  * id : character varying <<PK>>
+  changed_sync_period : integer
+  display_name : character varying
+  full_sync_period : integer
+  last_sync : integer
+  priority : integer
+  provider_name : character varying
+  realm_id : character varying
+}
+
+entity "user_group_membership" {
+  * group_id : character varying <<PK>>
+  * user_id : character varying <<PK>>
+}
+
+entity "user_required_action" {
+  * user_id : character varying <<PK>>
+  * required_action : character varying <<PK>>
+}
+
+entity "user_role_mapping" {
+  * role_id : character varying <<PK>>
+  * user_id : character varying <<PK>>
+}
+
+entity "user_session" {
+  * id : character varying <<PK>>
+  auth_method : character varying
+  ip_address : character varying
+  last_session_refresh : integer
+  login_username : character varying
+  realm_id : character varying
+  remember_me : boolean
+  started : integer
+  user_id : character varying
+  user_session_state : integer
+  broker_session_id : character varying
+  broker_user_id : character varying
+}
+
+entity "user_session_note" {
+  * user_session : character varying <<PK>>
+  * name : character varying <<PK>>
+  value : character varying
+}
+
+entity "username_login_failure" {
+  * realm_id : character varying <<PK>>
+  * username : character varying <<PK>>
+  failed_login_not_before : integer
+  last_failure : bigint
+  last_ip_failure : character varying
+  num_failures : integer
+}
+
+entity "users" {
+  * id : bigserial <<PK>>
+  active : boolean
+  avatar_color : character varying
+  department : character varying
+  email : character varying
+  first_name : character varying
+  last_name : character varying
+  name : character varying
+  password : character varying
+  post : character varying
+  telephone : character varying
+  role_id : bigint
+}
+
+entity "web_origins" {
+  * client_id : character varying <<PK>>
+  * value : character varying <<PK>>
+}
+
+entity "workflow_states" {
+  * id : bigserial <<PK>>
+  active : boolean
+  color_class : character varying
+  label : character varying
+  name : character varying
+  workflow_id : bigint
+}
+
+entity "workflow_transitions" {
+  * id : bigserial <<PK>>
+  from_state : character varying
+  requires_comment : boolean
+  role_required : character varying
+  to_state : character varying
+  workflow_id : bigint
+}
+
+entity "workflows" {
+  * id : bigserial <<PK>>
+  active : boolean
+  category : character varying
+  name : character varying
+  version : integer
+}
+
+
+@enduml

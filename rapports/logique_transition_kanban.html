@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Architecture de Validation des Workflows</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        @media print {
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .page-break { page-break-before: always; }
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #fff;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .container {
+            width: 210mm;
+            padding: 30mm 20mm;
+            margin: auto;
+            box-sizing: border-box;
+        }
+
+        .header {
+            border-bottom: 3px solid #3b82f6;
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: #0f172a;
+            font-size: 28px;
+            margin: 0 0 10px 0;
+            font-weight: 700;
+        }
+
+        .header h2 {
+            color: #64748b;
+            font-size: 18px;
+            margin: 0;
+            font-weight: 400;
+        }
+
+        h3 {
+            color: #1e293b;
+            font-size: 20px;
+            margin-top: 30px;
+            border-left: 4px solid #3b82f6;
+            padding-left: 10px;
+        }
+
+        p {
+            font-size: 14.5px;
+            margin-bottom: 15px;
+        }
+
+        .highlight { font-weight: 600; color: #1d4ed8; }
+
+        /* Code Block Styling */
+        .code-block {
+            background-color: #0f172a;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            color: #f8fafc;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .code-block .keyword { color: #c678dd; } /* const, if, return */
+        .code-block .function { color: #61afef; } /* useCallback, handleDrop */
+        .code-block .string { color: #98c379; } /* "string" */
+        .code-block .comment { color: #5c6370; font-style: italic; } /* comments */
+        .code-block .property { color: #e5c07b; } /* targetStatus, activeWorkflow */
+        
+        .badge {
+            display: inline-block;
+            background-color: #eff6ff;
+            color: #2563eb;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            border: 1px solid #bfdbfe;
+        }
+
+        .info-box {
+            background-color: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="header">
+            <h1>Architecture de Transition : Table vs Kanban</h1>
+            <h2>Unicité de la logique métier dans IncidentFlow</h2>
+        </div>
+
+        <div class="info-box">
+            <strong>Concept clé (Single Source of Truth) :</strong> Les vues Tableau Classique et Kanban ne sont que deux interfaces graphiques différentes. L'intelligence métier (les règles de transition) est centralisée. Si un administrateur modifie le workflow, les deux vues s'adaptent instantanément sans aucune duplication de code logique.
+        </div>
+
+        <h3>1. L'Interception Visuelle : Mode Kanban</h3>
+        <p>Dans le Kanban, l'utilisateur a la liberté de glisser une carte n'importe où. Le frontend intercepte cette action (le <i>Drop</i>) et vérifie si le mouvement correspond à une flèche existante dans le Workflow actif.</p>
+        
+        <span class="badge">Fichier : frontend/src/KanbanView.jsx</span>
+        <div class="code-block">
+<span class="keyword">const</span> <span class="function">handleDrop</span> = <span class="function">useCallback</span>((<span class="property">e</span>, <span class="property">targetStatus</span>) <span class="keyword">=&gt;</span> {
+  <span class="property">e</span>.<span class="function">preventDefault</span>();
+  <span class="comment">// 1. Récupération du statut actuel et du statut cible</span>
+  <span class="keyword">const</span> <span class="property">currentStatus</span> = (<span class="property">draggedIncident</span>.status || <span class="string">''</span>).toLowerCase();
+  
+  <span class="comment">// 2. Validation par rapport aux règles du workflow actif</span>
+  <span class="keyword">if</span> (<span class="property">activeWorkflow</span> && <span class="property">activeWorkflow</span>.transitions) {
+    <span class="keyword">const</span> <span class="property">allowedTransitions</span> = <span class="property">activeWorkflow</span>.transitions.filter(
+      <span class="property">t</span> <span class="keyword">=&gt;</span> (<span class="property">t</span>.fromState || <span class="string">''</span>).toLowerCase() === <span class="property">currentStatus</span>
+    );
+    <span class="keyword">const</span> <span class="property">matchedRule</span> = <span class="property">allowedTransitions</span>.find(
+      <span class="property">t</span> <span class="keyword">=&gt;</span> (<span class="property">t</span>.toState || <span class="string">''</span>).toLowerCase() === <span class="property">targetStatus</span>.toLowerCase()
+    );
+
+    <span class="comment">// 3. Rejet si le mouvement est illégal (pas de flèche dans le workflow)</span>
+    <span class="keyword">if</span> (!<span class="property">matchedRule</span>) {
+      <span class="keyword">const</span> <span class="property">validNextStates</span> = <span class="property">allowedTransitions</span>.map(<span class="property">t</span> =&gt; <span class="property">t</span>.toState).join(<span class="string">', '</span>);
+      <span class="function">setPendingTransitionModal</span>({
+        <span class="property">isForbidden</span>: <span class="keyword">true</span>,
+        <span class="property">forbiddenReason</span>: <span class="string">`Depuis "${currentStatus}", les seuls états 
+                          autorisés sont : ${validNextStates}`</span>
+      });
+      <span class="keyword">return</span>;
+    }
+  }
+});
+        </div>
+        <p>Si la transition est invalide, la carte retourne à sa position initiale et une alerte affiche dynamiquement les seuls états autorisés.</p>
+
+        <div class="page-break"></div>
+
+        <h3>2. L'Anticipation Visuelle : Mode Détails (Tableau)</h3>
+        <p>Dans la vue classique, la logique est la même, mais présentée de manière préventive. Le frontend filtre les transitions et n'affiche sous forme de boutons <strong>que</strong> les états d'arrivée autorisés. L'utilisateur ne peut donc physiquement pas déclencher d'erreur.</p>
+
+        <h3>3. L'Ultime Barrière de Sécurité : Le Backend (Java)</h3>
+        <p>Le frontend n'est jamais digne de confiance absolue. Quelle que soit l'interface utilisée, une requête API est envoyée au backend <code>performTransition()</code>. C'est ici qu'intervient la validation définitive. Si la transition demandée n'existe pas dans la base de données, le backend lève une exception (HTTP 400).</p>
+
+        <span class="badge">Fichier : backend/src/.../WorkflowService.java</span>
+        <div class="code-block">
+<span class="keyword">public</span> WorkflowTransition <span class="function">validateTransitionForIncident</span>(Incident <span class="property">incident</span>, 
+                  String <span class="property">fromState</span>, String <span class="property">toState</span>, User <span class="property">user</span>, String <span class="property">comment</span>) {
+    
+    <span class="comment">// 1. Récupération du workflow global validé par le DFS</span>
+    Workflow <span class="property">workflow</span> = incident.getWorkflow();
+    <span class="keyword">if</span> (<span class="property">workflow</span> == <span class="keyword">null</span>) {
+        <span class="property">workflow</span> = workflowRepository.<span class="function">findFirstByActiveTrue</span>()
+            .<span class="function">orElseThrow</span>(() <span class="keyword">-&gt;</span> <span class="keyword">new</span> InvalidTransitionException(
+                <span class="string">"Aucun workflow global actif configuré dans le système."</span>));
+    }
+
+    <span class="comment">// 2. Recherche stricte de la flèche de transition dans la DB</span>
+    WorkflowTransition <span class="property">match</span> = <span class="property">workflow</span>.getTransitions().stream()
+            .filter(<span class="property">t</span> <span class="keyword">-&gt;</span> <span class="property">t</span>.getFromState().equalsIgnoreCase(<span class="property">fromState</span>) && 
+                         <span class="property">t</span>.getToState().equalsIgnoreCase(<span class="property">toState</span>))
+            .findFirst()
+            .<span class="function">orElseThrow</span>(() <span class="keyword">-&gt;</span> <span class="keyword">new</span> InvalidTransitionException(
+                    String.<span class="function">format</span>(<span class="string">"Transition de '%s' vers '%s' non autorisée."</span>, 
+                                  <span class="property">fromState</span>, <span class="property">toState</span>)
+            ));
+
+    <span class="keyword">return</span> <span class="property">match</span>;
+}
+        </div>
+
+        <h3>Conclusion pour la Soutenance</h3>
+        <p>Le système a été conçu selon les meilleures pratiques de sécurité : <strong>une validation UI (Frontend)</strong> pour le confort utilisateur (alerte Kanban et masquage des boutons) et <strong>une validation stricte (Backend)</strong> pour garantir l'intégrité de la base de données. L'algorithme <i>DFS</i> protège le Workflow lors de sa création, et cette architecture protège chaque ticket lors de son cycle de vie.</p>
+
+    </div>
+</body>
+</html>

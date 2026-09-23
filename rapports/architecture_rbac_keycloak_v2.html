@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Dossier d'Architecture - Modèle RBAC Keycloak</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+        
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background-color: #ffffff;
+            color: #333333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px 60px;
+            font-size: 13px;
+        }
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+        }
+        .document-header {
+            border-bottom: 2px solid #1a365d;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        .document-header h1 {
+            color: #1a365d;
+            font-size: 24px;
+            margin: 0 0 5px 0;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .document-header h2 {
+            color: #4a5568;
+            font-size: 15px;
+            margin: 0;
+            font-weight: 400;
+        }
+        .section {
+            margin-bottom: 35px;
+            page-break-inside: avoid;
+        }
+        .section-title {
+            color: #2c5282;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 5px;
+        }
+        p {
+            margin: 0 0 12px 0;
+            text-align: justify;
+        }
+        
+        .diagram-box {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .role-badge {
+            display: inline-block;
+            background-color: #1a365d;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .permissions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .permission-item {
+            background-color: #ebf8ff;
+            border: 1px dashed #3182ce;
+            color: #2b6cb0;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        .alert-box {
+            background-color: #fffaf0;
+            border-left: 4px solid #dd6b20;
+            padding: 15px 20px;
+            color: #9c4221;
+            margin-top: 20px;
+            font-style: italic;
+        }
+
+        .footer {
+            margin-top: 40px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+            text-align: center;
+            font-size: 10px;
+            color: #a0aec0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="document-header">
+        <h1>Dossier d'Architecture Logicielle</h1>
+        <h2>Modèle de Sécurité IAM - Rôles Composites & RBAC (Keycloak)</h2>
+    </div>
+
+    <div class="section">
+        <div class="section-title">1. Problématique : La Disparition de la notion de "Permission"</div>
+        <p>Dans les architectures monolithiques classiques (comme la V1 d'IncidentFlow), la sécurité est modélisée via deux entités distinctes : les <strong>Rôles</strong> (profils métiers) et les <strong>Permissions</strong> (droits d'actions techniques), reliés par une table de jointure.</p>
+        <p>Lors de la migration vers Keycloak et le standard <strong>OAuth2 / OIDC</strong>, cette dichotomie disparaît visuellement. Tout est unifié sous le concept unique de <i>"Role"</i>. Pourquoi ? Parce que le standard JWT (JSON Web Token) n'encapsule les droits d'accès que sous la forme d'un unique tableau plat de revendications (<i>claims</i>).</p>
+    </div>
+
+    <div class="section">
+        <div class="section-title">2. L'Architecture RBAC via les Rôles Composites</div>
+        <p>Pour recréer la matrice Rôles/Permissions sans utiliser un moteur UMA complexe, l'architecture V2 s'appuie sur le <i>Design Pattern</i> des <strong>Rôles Composites</strong> (Composite Roles) natif à Keycloak.</p>
+        
+        <div class="diagram-box">
+            <div style="font-size: 12px; color: #718096; margin-bottom: 10px;">Realm Role (Le Profil Métier)</div>
+            <div class="role-badge">Administrateur</div>
+            <div style="font-size: 20px; color: #cbd5e0;">↓ contient (Composition) ↓</div>
+            <div style="font-size: 12px; color: #718096; margin-top: 10px;">Client Roles (Les Permissions Techniques)</div>
+            <div class="permissions-grid">
+                <div class="permission-item">INCIDENT_CREATE</div>
+                <div class="permission-item">INCIDENT_DELETE</div>
+                <div class="permission-item">INCIDENT_EDIT</div>
+                <div class="permission-item">PAGE_DASHBOARD</div>
+                <div class="permission-item">PAGE_USERS</div>
+                <div class="permission-item">CONFIG_WORKFLOW</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">3. Typologie des Rôles Keycloak</div>
+        <ul>
+            <li><strong>Realm Roles (Rôles de Royaume) :</strong> Représentent l'identité métier globale de l'utilisateur au sein de l'entreprise (ex: <i>Administrateur</i>, <i>Employé</i>, <i>Technicien</i>). Ce sont les rôles assignés directement aux humains.</li>
+            <li><strong>Client Roles (Rôles de Client) :</strong> Représentent les permissions techniques (ex: <i>INCIDENT_CREATE</i>). Ils sont confinés à une application spécifique (ici le client <code>incidentflow-frontend</code>).</li>
+        </ul>
+        <p>En cochant la case <i>"Composite Roles"</i> dans Keycloak, le Realm Role devient un simple "dossier" conteneur qui agrège de multiples Client Roles.</p>
+    </div>
+
+    <div class="section">
+        <div class="section-title">4. Avantages Techniques et Héritage</div>
+        <p>Cette approche surpasse techniquement l'architecture V1 locale :</p>
+        <p>Elle permet l'<strong>Héritage multiple</strong>. Dans Keycloak, le rôle <i>Administrateur</i> peut hériter du rôle <i>Technicien</i>, lui-même héritant du rôle <i>Employé</i>. Lors de la connexion, Keycloak aplatit automatiquement cet arbre d'héritage et injecte toutes les permissions (Client Roles) sous-jacentes dans le Token JWT, évitant ainsi de lourdes requêtes SQL récursives côté Backend Java.</p>
+        
+        <div class="alert-box">
+            "Le Pattern des Rôles Composites permet d'unifier la gestion des habilitations. Les administrateurs gèrent des profils métiers (Realm Roles) de haut niveau, pendant que le Backend et le Frontend vérifient des permissions granulaires (Client Roles), garantissant un parfait découplage entre les besoins métiers et l'implémentation technique."
+        </div>
+    </div>
+
+    <div class="footer">
+        Dossier Technique V2 — Architecture IAM et Rôles Composites
+    </div>
+</div>
+
+</body>
+</html>

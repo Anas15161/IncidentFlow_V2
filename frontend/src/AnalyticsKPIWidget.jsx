@@ -44,7 +44,7 @@ export function AnalyticsKPIWidget({ incidents = [] }) {
     const ackIncidents = (incidents || []).filter(i => i.createdAt && (i.assignedTo || i.status !== 'Nouveau'));
 
     if (ackIncidents.length === 0) {
-      return { text: '18m en moyenne', minutes: 18 };
+      return { text: '18m', minutes: 18 };
     }
 
     let totalDurationMs = 0;
@@ -62,8 +62,15 @@ export function AnalyticsKPIWidget({ incidents = [] }) {
     });
 
     const avgMins = validCount > 0 ? Math.round((totalDurationMs / validCount) / (1000 * 60)) : 22;
+    let text = `${avgMins}m`;
+    if (avgMins >= 60) {
+      const h = Math.floor(avgMins / 60);
+      const m = avgMins % 60;
+      text = `${h}h ${m}m`;
+    }
+
     return {
-      text: `${avgMins} min en moyenne`,
+      text: text,
       minutes: avgMins
     };
   }, [incidents]);
@@ -115,125 +122,65 @@ export function AnalyticsKPIWidget({ incidents = [] }) {
   }, [incidents]);
 
   return (
-    <div className="analytics-kpi-container animate-fade-in" style={{ marginBottom: '24px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <div>
-          <h2 style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: 'var(--text-main, #0f172a)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Activity size={20} className="text-primary-600" />
-            Tableau de Bord de Performance Gestion d'Incidents & Métriques SLA
-          </h2>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted, #64748b)', margin: '4px 0 0 0' }}>
-            Calcul automatique du temps de résolution (MTTR), de prise en charge (MTTA) et détection des goulots.
-          </p>
-        </div>
-
-        <span className="badge badge-primary" style={{ padding: '6px 12px', fontSize: '11px', fontWeight: '700' }}>
-          <ShieldCheck size={13} style={{ marginRight: '4px' }} />
-          Calculs Temps Réel
-        </span>
-      </div>
-
-      {/* KPI Cards Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-
-        {/* Card 1: MTTR */}
-        <div className="analytics-card" style={{ background: 'var(--bg-surface, #ffffff)', border: '1px solid var(--border-color, #e2e8f0)', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <span style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>
-                MTTR (Mean Time to Resolve)
-              </span>
-              <div style={{ fontSize: '24px', fontWeight: '800', color: '#0f172a', marginTop: '6px' }}>
-                {mttrData.hours}
-              </div>
-            </div>
-            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Clock size={20} />
-            </div>
+    <div className="analytics-kpi-container animate-fade-in" style={{ marginBottom: '32px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+        
+        {/* Card 1: SLA */}
+        <div className="kpi-card" title="Pourcentage d'incidents clôturés dans le délai imparti (SLA)." style={{ display: 'flex', flexDirection: 'column', padding: '20px', borderLeft: `4px solid ${slaCompliance.rate >= 90 ? '#10b981' : '#f59e0b'}`, cursor: 'help' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Conformité SLA</span>
+            <Target size={18} color={slaCompliance.rate >= 90 ? '#10b981' : '#f59e0b'} />
           </div>
-          <div style={{ marginTop: '12px', fontSize: '12px', color: '#10b981', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <TrendingUp size={14} />
-            <span>-14% vs mois dernier</span>
-            <span style={{ color: '#94a3b8', fontWeight: 'normal', marginLeft: 'auto' }}>Temps résolution</span>
+          <div style={{ fontSize: '28px', fontWeight: '800', color: 'var(--text-main)', marginTop: '12px' }}>
+            {slaCompliance.rate}%
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px', display: 'flex', gap: '12px' }}>
+            <span>✅ {slaCompliance.onTime}</span>
+            <span style={{ color: slaCompliance.overdue > 0 ? '#ef4444' : 'inherit' }}>⚠️ {slaCompliance.overdue}</span>
           </div>
         </div>
 
-        {/* Card 2: MTTA */}
-        <div className="analytics-card" style={{ background: 'var(--bg-surface, #ffffff)', border: '1px solid var(--border-color, #e2e8f0)', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <span style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>
-                MTTA (Mean Time to Ack)
-              </span>
-              <div style={{ fontSize: '24px', fontWeight: '800', color: '#0f172a', marginTop: '6px' }}>
-                {mttaData.text}
-              </div>
-            </div>
-            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.1)', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Zap size={20} />
-            </div>
+        {/* Card 2: MTTR */}
+        <div className="kpi-card" title="Mean Time To Resolve : Temps moyen nécessaire pour résoudre complètement un incident." style={{ display: 'flex', flexDirection: 'column', padding: '20px', borderLeft: '4px solid #3b82f6', cursor: 'help' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Résolution (MTTR)</span>
+            <Clock size={18} color="#3b82f6" />
           </div>
-          <div style={{ marginTop: '12px', fontSize: '12px', color: '#2563eb', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Award size={14} />
-            <span>Réponse sous 30 min</span>
-            <span style={{ color: '#94a3b8', fontWeight: 'normal', marginLeft: 'auto' }}>Prise en charge</span>
+          <div style={{ fontSize: '28px', fontWeight: '800', color: 'var(--text-main)', marginTop: '12px' }}>
+            {mttrData.hours}
+          </div>
+          <div style={{ fontSize: '12px', color: '#10b981', marginTop: '8px', fontWeight: '600' }}>
+            ↓ -14% (30j)
           </div>
         </div>
 
-        {/* Card 3: SLA Compliance Gauge */}
-        <div className="analytics-card" style={{ background: 'var(--bg-surface, #ffffff)', border: '1px solid var(--border-color, #e2e8f0)', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <span style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>
-                Conformité SLA
-              </span>
-              <div style={{ fontSize: '24px', fontWeight: '800', color: slaCompliance.rate >= 90 ? '#059669' : '#dc2626', marginTop: '6px' }}>
-                {slaCompliance.rate}%
-              </div>
-            </div>
-            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.1)', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Target size={20} />
-            </div>
+        {/* Card 3: MTTA */}
+        <div className="kpi-card" title="Mean Time To Acknowledge : Temps moyen qu'un technicien met pour assigner et prendre en charge un nouveau ticket." style={{ display: 'flex', flexDirection: 'column', padding: '20px', borderLeft: '4px solid #8b5cf6', cursor: 'help' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Prise en charge</span>
+            <Zap size={18} color="#8b5cf6" />
           </div>
-
-          {/* Progress Gauge Bar */}
-          <div style={{ marginTop: '10px', height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
-            <div
-              style={{
-                height: '100%',
-                width: `${slaCompliance.rate}%`,
-                background: slaCompliance.rate >= 90 ? '#10b981' : '#f59e0b',
-                transition: 'width 0.5s ease'
-              }}
-            />
+          <div style={{ fontSize: '28px', fontWeight: '800', color: 'var(--text-main)', marginTop: '12px' }}>
+            {mttaData.text}
           </div>
-
-          <div style={{ marginTop: '8px', fontSize: '11px', color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
-            <span>Dans les temps : <strong>{slaCompliance.onTime}</strong></span>
-            <span style={{ color: slaCompliance.overdue > 0 ? '#dc2626' : '#64748b' }}>Dépassés : <strong>{slaCompliance.overdue}</strong></span>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
+            Obj: &lt; 30 min
           </div>
         </div>
 
-        {/* Card 4: Bottleneck Analysis */}
-        <div className="analytics-card" style={{ background: 'var(--bg-surface, #ffffff)', border: '1px solid var(--border-color, #e2e8f0)', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <span style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>
-                Goulot d'Étranglement
-              </span>
-              <div style={{ fontSize: '18px', fontWeight: '800', color: '#d97706', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>
-                {bottlenecks.bottleneckState} ({bottlenecks.percentage}%)
-              </div>
-            </div>
-            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.1)', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <AlertTriangle size={20} />
-            </div>
+        {/* Card 4: Bottleneck */}
+        <div className="kpi-card" title="L'étape du processus où le plus grand nombre d'incidents sont actuellement bloqués ou en attente." style={{ display: 'flex', flexDirection: 'column', padding: '20px', borderLeft: '4px solid #ef4444', cursor: 'help' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Goulot d'étranglement</span>
+            <AlertTriangle size={18} color="#ef4444" />
           </div>
-          <div style={{ marginTop: '12px', fontSize: '11px', color: '#475569', lineHeight: '1.4' }}>
-            ⚠️ <strong>{bottlenecks.bottleneckCount} incident(s)</strong> concentrés dans la colonne "{bottlenecks.bottleneckState}". Recommandation : Affecter plus de ressources.
+          <div style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text-main)', marginTop: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {bottlenecks.bottleneckState}
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
+            {bottlenecks.bottleneckCount} tickets stagnants
           </div>
         </div>
-
       </div>
     </div>
   );

@@ -9,7 +9,7 @@
 
 import { useState, useEffect } from 'react';
 
-const API_BASE = 'http://localhost:8080/api';
+const API_BASE = 'http://localhost:8081/api';
 
 export function useSettings({ currentUser, setCurrentUser, getHeaders, fetchUsers }) {
   // Profile & Settings Dropdown / Modals states

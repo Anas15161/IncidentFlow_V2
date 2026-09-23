@@ -1,19 +1,20 @@
 
 services:
-  incidentflow-postgres:
+  incidentflow-postgres-v2:
     image: postgres:16-alpine
-    container_name: incidentflow-postgres
+    container_name: incidentflow-postgres-v2
     command: postgres -c shared_buffers=64MB -c max_connections=40 -c work_mem=4MB
     environment:
       POSTGRES_DB: IncidentFlow_db
       POSTGRES_USER: IncidentFlow_user
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d
     networks:
-      - incidentflow-network
+      - incidentflow-network-v2
     restart: unless-stopped
     deploy:
       resources:
@@ -22,26 +23,27 @@ services:
         reservations:
           memory: 64M
 
-  incidentflow-keycloak:
+  incidentflow-keycloak-v2:
     image: keycloak/keycloak:21.1.1
-    container_name: incidentflow-keycloak
+    container_name: incidentflow-keycloak-v2
     command: start-dev --import-realm
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: ${KC_PASSWORD}
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://incidentflow-postgres:5432/IncidentFlow_db
+      KC_DB_SCHEMA: keycloak
+      KC_DB_URL: jdbc:postgresql://incidentflow-postgres-v2:5432/IncidentFlow_db?currentSchema=keycloak
       KC_DB_USERNAME: IncidentFlow_user
       KC_DB_PASSWORD: ${DB_PASSWORD}
       JAVA_OPTS_KC_BUILD: "-Xms128m -Xmx480m -XX:+UseSerialGC"
     ports:
-      - "8180:8080"
+      - "8181:8080"
     depends_on:
-      - incidentflow-postgres
+      - incidentflow-postgres-v2
     volumes:
       - ./keycloak/imports:/opt/keycloak/data/import
     networks:
-      - incidentflow-network
+      - incidentflow-network-v2
     restart: unless-stopped
     deploy:
       resources:
@@ -50,14 +52,14 @@ services:
         reservations:
           memory: 128M
 
-  incidentflow-redis:
+  incidentflow-redis-v2:
     image: redis:7-alpine
-    container_name: incidentflow-redis
+    container_name: incidentflow-redis-v2
     command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru
     ports:
-      - "6380:6379"
+      - "6381:6379"
     networks:
-      - incidentflow-network
+      - incidentflow-network-v2
     restart: unless-stopped
     deploy:
       resources:
@@ -66,24 +68,24 @@ services:
         reservations:
           memory: 32M
 
-  incidentflow-backend:
+  incidentflow-backend-v2:
     build: ./backend
-    container_name: incidentflow-backend
+    container_name: incidentflow-backend-v2
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://incidentflow-postgres:5432/IncidentFlow_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://incidentflow-postgres-v2:5432/IncidentFlow_db?currentSchema=incidentflow,flowable,public
       SPRING_DATASOURCE_USERNAME: IncidentFlow_user
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       SPRING_PROFILES_ACTIVE: dev-mock
-      SPRING_DATA_REDIS_HOST: incidentflow-redis
+      SPRING_DATA_REDIS_HOST: incidentflow-redis-v2
       SPRING_DATA_REDIS_PORT: 6379
       JAVA_TOOL_OPTIONS: "-XX:+UseSerialGC -Xss256k -Xms128m -Xmx384m"
     ports:
-      - "8080:8080"
+      - "8081:8080"
     depends_on:
-      - incidentflow-postgres
-      - incidentflow-redis
+      - incidentflow-postgres-v2
+      - incidentflow-redis-v2
     networks:
-      - incidentflow-network
+      - incidentflow-network-v2
     restart: unless-stopped
     deploy:
       resources:
@@ -92,28 +94,37 @@ services:
         reservations:
           memory: 128M
 
-  incidentflow-frontend:
+  incidentflow-frontend-v2:
     build: ./frontend
-    container_name: incidentflow-frontend
+    container_name: incidentflow-frontend-v2
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       # You can add API URLs here if your frontend uses them via env vars
-      - VITE_API_URL=http://localhost:8080
+      - VITE_API_URL=http://localhost:8081
     depends_on:
-      - incidentflow-backend
+      - incidentflow-backend-v2
     networks:
-      - incidentflow-network
+      - incidentflow-network-v2
     restart: unless-stopped
     volumes:
       # Optional: Bind mount to reflect code changes live during development
       - ./frontend:/app
       - /app/node_modules
 
+  incidentflow-flowable-ui:
+    image: flowable/flowable-ui:6.8.0
+    container_name: incidentflow-flowable-ui
+    ports:
+      - "8082:8080"
+    networks:
+      - incidentflow-network-v2
+    restart: unless-stopped
+
 volumes:
   postgres-data:
 
 networks:
-  incidentflow-network:
+  incidentflow-network-v2:
     driver: bridge
 

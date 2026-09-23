@@ -70,15 +70,7 @@ export function Sidebar({
               </span>
             </button>
 
-            <button
-              className={`nav-btn ${currentView === 'audit' ? 'active' : ''}`}
-              onClick={() => { setCurrentView('audit'); setSelectedIncidentCode(null); }}
-            >
-              <span className="nav-label">
-                <Clock size={18} />
-                Journal d'Audit
-              </span>
-            </button>
+
           </>
         )}
 

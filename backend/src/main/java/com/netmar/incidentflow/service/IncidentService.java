@@ -21,17 +21,23 @@ public class IncidentService {
     private final WorkflowService workflowService;
     private final AttachmentRepository attachmentRepository;
     private final CommentRepository commentRepository;
+    private final org.flowable.engine.RuntimeService runtimeService;
+    private final org.flowable.engine.TaskService taskService;
 
     public IncidentService(IncidentRepository incidentRepository,
                            UserRepository userRepository,
                            WorkflowService workflowService,
                            AttachmentRepository attachmentRepository,
-                           CommentRepository commentRepository) {
+                           CommentRepository commentRepository,
+                           org.flowable.engine.RuntimeService runtimeService,
+                           org.flowable.engine.TaskService taskService) {
         this.incidentRepository = incidentRepository;
         this.userRepository = userRepository;
         this.workflowService = workflowService;
         this.attachmentRepository = attachmentRepository;
         this.commentRepository = commentRepository;
+        this.runtimeService = runtimeService;
+        this.taskService = taskService;
     }
 
     public List<Incident> getIncidents(String category, String priority, String status, Long assignedToId, String search) {
@@ -72,13 +78,6 @@ public class IncidentService {
     @Transactional
     public Incident createIncident(Incident incident, User author) {
         incident.setAuthor(author);
-        incident.setStatus("Nouveau");
-
-        // Associer le workflow actif actuel pour la catégorie (Versionning)
-        try {
-            Workflow activeWorkflow = workflowService.getWorkflowByCategoryAndActive(incident.getCategory());
-            incident.setWorkflow(activeWorkflow);
-        } catch (Exception ignored) {}
 
         // Generer le code incident unique (ex: INC-2026-005)
         int year = LocalDateTime.now().getYear();
@@ -92,6 +91,32 @@ public class IncidentService {
             } catch (NumberFormatException ignored) {}
         }
         incident.setIncidentCode(String.format("%s%03d", prefix, seq));
+
+        // =========================================================================
+        // ÉTAPE C-1 : Démarrage d'une Instance Flowable & Clé Étrangère Souple (Soft FK)
+        // 1. runtimeService.startProcessInstanceByKey démarre une exécution vivante du BPMN
+        //    dans le schéma 'flowable' (tables act_ru_execution, act_ru_task).
+        // 2. L'identifiant 'processInstance.getId()' est stocké dans 'incidentflow.incidents.process_instance_id'.
+        //    Il s'agit d'une Soft Foreign Key (sans contrainte SQL rigide inter-schémas).
+        // 3. Le statut initial de l'incident est synchronisé directement depuis la 1ère UserTask Flowable.
+        // =========================================================================
+        java.util.Map<String, Object> variables = new java.util.HashMap<>();
+        variables.put("incidentCode", incident.getIncidentCode());
+        variables.put("initiator", author.getName());
+        try {
+            org.flowable.engine.runtime.ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("incidentWorkflow", variables);
+            incident.setProcessInstanceId(processInstance.getId());
+            
+            org.flowable.task.api.Task currentTask = taskService.createTaskQuery().processInstanceId(processInstance.getId()).singleResult();
+            if (currentTask != null) {
+                incident.setStatus(currentTask.getName());
+            } else {
+                incident.setStatus("Nouveau");
+            }
+        } catch (Exception e) {
+            System.err.println("Flowable process start failed, falling back to Nouveau: " + e.getMessage());
+            incident.setStatus("Nouveau");
+        }
 
         // Regle d'affectation automatique pour le medical
         if ("Médical".equalsIgnoreCase(incident.getCategory())) {
@@ -175,11 +200,44 @@ public class IncidentService {
         Incident incident = getIncidentByCode(code);
         String oldState = incident.getStatus();
 
-        // 1. Valider la transition via le moteur de workflow versionné
-        workflowService.validateTransitionForIncident(incident, oldState, toState, user, commentText);
-
-        // 2. Mettre a jour le statut
-        incident.setStatus(toState);
+        if (incident.getProcessInstanceId() != null) {
+            org.flowable.task.api.Task currentTask = taskService.createTaskQuery().processInstanceId(incident.getProcessInstanceId()).singleResult();
+            if (currentTask != null) {
+                java.util.Map<String, Object> variables = new java.util.HashMap<>();
+                // Logique conditionnelle pour la passerelle (Gateway)
+                if ("Résolu".equalsIgnoreCase(toState) || "Clôture de l'incident".equalsIgnoreCase(toState)) {
+                    variables.put("resolved", true);
+                } else if ("En cours".equalsIgnoreCase(toState)) {
+                    variables.put("resolved", false);
+                }
+                
+                try {
+                    // =========================================================================
+                    // ÉTAPE C-2 : Avancement d'un Incident lors d'une Transition Kanban (Flowable Runtime)
+                    // 1. taskService.complete() valide la tâche courante et avance le jeton le long du SequenceFlow.
+                    // 2. Flowable détermine automatiquement la tâche suivante selon le XML BPMN.
+                    // 3. Le statut de l'incident en BDD prend le nom littéral de cette nouvelle tâche.
+                    // 4. Flowable archive automatiquement la tâche passée dans 'flowable.act_hi_taskinst' (Audit).
+                    // =========================================================================
+                    taskService.complete(currentTask.getId(), variables);
+                } catch (Exception e) {
+                    System.err.println("Erreur d'exécution de la tâche Flowable: " + e.getMessage());
+                }
+                
+                org.flowable.task.api.Task nextTask = taskService.createTaskQuery().processInstanceId(incident.getProcessInstanceId()).singleResult();
+                if (nextTask != null) {
+                    incident.setStatus(nextTask.getName());
+                } else {
+                    incident.setStatus(toState); // Processus terminé ou sans tâche
+                }
+            } else {
+                incident.setStatus(toState);
+            }
+        } else {
+            // Rétrocompatibilité si aucun processus Flowable n'est attaché
+            workflowService.validateTransitionForIncident(incident, oldState, toState, user, commentText);
+            incident.setStatus(toState);
+        }
 
         // 3. Ajouter le commentaire si present
         if (commentText != null && !commentText.trim().isEmpty()) {
@@ -193,7 +251,7 @@ public class IncidentService {
 
         // 4. Ajouter l'historique
         IncidentHistory history = IncidentHistory.builder()
-                .action(String.format("Statut modifié à %s", toState))
+                .action(String.format("Statut modifié à %s", incident.getStatus()))
                 .username(user.getName())
                 .incident(incident)
                 .build();

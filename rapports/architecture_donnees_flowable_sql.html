@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Dossier d'Architecture - Base de Données Flowable (SQL)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+        
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background-color: #ffffff;
+            color: #333333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px 60px;
+            font-size: 13px;
+        }
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+        }
+        .document-header {
+            border-bottom: 2px solid #dd6b20;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        .document-header h1 {
+            color: #dd6b20;
+            font-size: 24px;
+            margin: 0 0 5px 0;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .document-header h2 {
+            color: #4a5568;
+            font-size: 15px;
+            margin: 0;
+            font-weight: 400;
+        }
+        .section {
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+        }
+        .section-title {
+            color: #9c4221;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 5px;
+        }
+        p {
+            margin: 0 0 10px 0;
+            text-align: justify;
+        }
+        
+        .sql-box {
+            background-color: #1e293b;
+            color: #38bdf8;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            margin: 10px 0;
+            white-space: pre;
+            border-left: 4px solid #0ea5e9;
+        }
+        .sql-comment { color: #94a3b8; }
+        .sql-keyword { color: #f472b6; font-weight: bold; }
+        
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .card {
+            border: 1px solid #cbd5e0;
+            padding: 15px;
+            border-radius: 6px;
+            background: #fffaf0;
+        }
+        .card-title {
+            font-weight: bold;
+            color: #dd6b20;
+            margin-bottom: 8px;
+            font-size: 14px;
+            border-bottom: 1px dashed #dd6b20;
+            padding-bottom: 4px;
+        }
+
+        .alert-box {
+            background-color: #f8fafc;
+            border-left: 4px solid #dd6b20;
+            padding: 15px 20px;
+            color: #4a5568;
+            margin-top: 20px;
+            font-style: italic;
+        }
+
+        .footer {
+            margin-top: 40px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+            text-align: center;
+            font-size: 10px;
+            color: #a0aec0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="document-header">
+        <h1>Dossier d'Architecture Logicielle</h1>
+        <h2>Cartographie SQL du Moteur BPMN Flowable (ACT_*)</h2>
+    </div>
+
+    <div class="section">
+        <div class="section-title">1. La Nomenclature des Tables Flowable</div>
+        <p>Le moteur Flowable crée automatiquement ses tables dans votre base PostgreSQL. Pour garantir d'excellentes performances, Flowable divise ses données en trois grands espaces sémantiques. Leurs noms commencent tous par <code>ACT_</code> (Activity) suivi de deux lettres :</p>
+        
+        <div class="grid-3">
+            <div class="card">
+                <div class="card-title">ACT_RE_* (Repository)</div>
+                <p>Contient les données statiques : les modèles BPMN déployés, le code XML, les images des processus. "Où le workflow est stocké de manière permanente."</p>
+            </div>
+            <div class="card">
+                <div class="card-title">ACT_RU_* (Runtime)</div>
+                <p>Contient les données dynamiques : les processus "En Cours", les tâches actuelles, les variables actives. Ces tables sont vidées dès qu'un processus se termine.</p>
+            </div>
+            <div class="card">
+                <div class="card-title">ACT_HI_* (History)</div>
+                <p>C'est le journal d'Audit. Flowable y archive absolument toutes les actions terminées de manière indélébile. C'est ici que l'historique de votre V1 a été délégué.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">2. Où est stocké votre Workflow (BPMN) ?</div>
+        <p>Lorsque vous dessinez votre processus dans le Modeler et que vous le déployez, Flowable ne crée pas de fichier sur le disque. Il stocke le fichier XML directement dans la base de données (sous forme de <i>ByteArray</i>). Voici la requête SQL pour le vérifier :</p>
+        <div class="sql-box"><span class="sql-comment">-- Liste des modèles de workflow déployés dans le système</span>
+<span class="sql-keyword">SELECT</span> ID_, KEY_, NAME_, VERSION_ 
+<span class="sql-keyword">FROM</span> ACT_RE_PROCDEF;
+
+<span class="sql-comment">-- Pour voir le fichier XML (BPMN) physique stocké en BDD :</span>
+<span class="sql-keyword">SELECT</span> NAME_, BYTES_ 
+<span class="sql-keyword">FROM</span> ACT_GE_BYTEARRAY 
+<span class="sql-keyword">WHERE</span> NAME_ <span class="sql-keyword">LIKE</span> '%.bpmn%';</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">3. Interroger les Tâches Actives (Runtime)</div>
+        <p>Lorsqu'un utilisateur déclare un incident, l'application Java demande à Flowable de démarrer une instance. Flowable crée alors une tâche (ex: "Assignation"). Voici la requête SQL pour voir les tickets bloqués à une étape précise :</p>
+        <div class="sql-box"><span class="sql-comment">-- Liste des tâches humaines actuellement en attente d'une action</span>
+<span class="sql-keyword">SELECT</span> ID_, PROC_INST_ID_, NAME_, ASSIGNEE_, CREATE_TIME_ 
+<span class="sql-keyword">FROM</span> ACT_RU_TASK;
+
+<span class="sql-comment">-- Liste des variables de workflow actuelles (ex: "incidentTitle")</span>
+<span class="sql-keyword">SELECT</span> NAME_, TEXT_ 
+<span class="sql-keyword">FROM</span> ACT_RU_VARIABLE;</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">4. Extraire le Journal d'Audit (History)</div>
+        <p>Dans votre V1, vous alimentiez manuellement une table <code>IncidentHistory</code>. Avec Flowable, le suivi des actions est natif. Une fois qu'une tâche est validée, elle disparaît de <code>ACT_RU_TASK</code> et est insérée de façon permanente dans <code>ACT_HI_TASKINST</code>.</p>
+        <div class="sql-box"><span class="sql-comment">-- Retracer l'historique d'un incident spécifique (par Process Instance ID)</span>
+<span class="sql-keyword">SELECT</span> NAME_, START_TIME_, END_TIME_, ASSIGNEE_, DURATION_ 
+<span class="sql-keyword">FROM</span> ACT_HI_TASKINST 
+<span class="sql-keyword">WHERE</span> PROC_INST_ID_ = '12345'
+<span class="sql-keyword">ORDER BY</span> START_TIME_ <span class="sql-keyword">ASC</span>;</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">5. Argumentaire Architecte Logiciel</div>
+        <div class="alert-box">
+            "Le Moteur Flowable agit comme un service complet et autonome (Embedded Engine). En le connectant à ma base de données PostgreSQL, il a automatiquement généré ses 3 grandes familles de tables (RE, RU, HI). Si mon jury souhaite vérifier que le Workflow n'est plus codé en dur en Java, il me suffit de lancer une simple requête SELECT sur la table <strong>ACT_RE_PROCDEF</strong> via pgAdmin pour leur prouver que le fichier XML modélisant mon processus d'incident est bien sérialisé et sécurisé en base de données."
+        </div>
+    </div>
+
+    <div class="footer">
+        Dossier Technique V2 — Exploration SQL du Moteur Flowable
+    </div>
+</div>
+
+</body>
+</html>

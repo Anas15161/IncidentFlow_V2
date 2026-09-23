@@ -1,0 +1,82 @@
+{
+  "id": "incidentflow-realm",
+  "realm": "incidentflow-realm",
+  "displayName": "IncidentFlow",
+  "displayNameHtml": "<div class=\"kc-logo-text\"><span>IncidentFlow IAM</span></div>",
+  "enabled": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "Administrateur",
+        "description": "Accès total au système"
+      },
+      {
+        "name": "Responsable",
+        "description": "Gestion des équipes et supervision"
+      },
+      {
+        "name": "Opérateur",
+        "description": "Traitement standard des incidents"
+      },
+      {
+        "name": "Opérateur médical",
+        "description": "Traitement spécifique des incidents médicaux"
+      }
+    ],
+    "client": {}
+  },
+  "clients": [
+    {
+      "clientId": "incidentflow-frontend",
+      "name": "Frontend React",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [
+        "http://localhost:3001/*",
+        "http://localhost:3001",
+        "*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "publicClient": true,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "username": "admin@netmar.com",
+      "email": "admin@netmar.com",
+      "firstName": "Admin",
+      "lastName": "Système",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "Administrateur"
+      ]
+    },
+    {
+      "username": "operateur@netmar.com",
+      "email": "operateur@netmar.com",
+      "firstName": "Agent",
+      "lastName": "Opérateur",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "Opérateur"
+      ]
+    }
+  ]
+}

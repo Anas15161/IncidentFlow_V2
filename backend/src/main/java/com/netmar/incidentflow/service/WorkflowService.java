@@ -11,6 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import java.util.List;
+import org.flowable.engine.RepositoryService;
+import org.flowable.engine.repository.ProcessDefinition;
+import org.flowable.bpmn.model.*;
 
 /**
  * Service de gestion du cycle de vie des workflows dynamiques d'incidents.
@@ -22,6 +25,122 @@ public class WorkflowService {
 
     private final WorkflowRepository workflowRepository;
     private final IncidentRepository incidentRepository;
+
+    // =========================================================================
+    // ÉTAPE B : Lecture Dynamique de l'arbre BPMN en Mémoire et Synchronisation Métier
+    // 1. On demande à Flowable l'arbre d'éléments BPMN (BpmnModel) de la dernière définition.
+    // 2. On parcourt le graphe le long des SequenceFlow pour extraire les tâches UserTask dans l'ordre.
+    // 3. On met à jour la table 'incidentflow.workflow_states' et on purge le cache Redis.
+    //    Résultat : le Kanban, le Stepper et React Flow reflètent instantanément le nouveau XML.
+    // =========================================================================
+    @Transactional
+    @CacheEvict(value = {"workflows", "workflows-category"}, allEntries = true)
+    public void syncWithFlowable(RepositoryService repositoryService) {
+        if (repositoryService == null) return;
+        try {
+            // Recherche de la version la plus récente déployée sous la clé 'incidentWorkflow'
+            ProcessDefinition procDef = repositoryService.createProcessDefinitionQuery()
+                    .processDefinitionKey("incidentWorkflow")
+                    .latestVersion()
+                    .singleResult();
+
+            if (procDef == null) return;
+
+            // Extraction de l'arbre de modélisation BPMN en mémoire vive
+            BpmnModel bpmnModel = repositoryService.getBpmnModel(procDef.getId());
+            if (bpmnModel == null || bpmnModel.getMainProcess() == null) return;
+
+            org.flowable.bpmn.model.Process process = bpmnModel.getMainProcess();
+
+            List<Workflow> all = workflowRepository.findAll();
+            if (all.isEmpty()) return;
+            Workflow workflow = all.get(0);
+
+            List<String> orderedStateNames = new java.util.ArrayList<>();
+            List<SequenceFlow> seqFlows = process.findFlowElementsOfType(SequenceFlow.class);
+            List<StartEvent> startEvents = process.findFlowElementsOfType(StartEvent.class);
+
+            if (!startEvents.isEmpty()) {
+                String currentId = startEvents.get(0).getId();
+                java.util.Set<String> visited = new java.util.HashSet<>();
+                while (currentId != null && !visited.contains(currentId)) {
+                    visited.add(currentId);
+                    String nextId = null;
+                    for (SequenceFlow flow : seqFlows) {
+                        if (currentId.equals(flow.getSourceRef())) {
+                            nextId = flow.getTargetRef();
+                            break;
+                        }
+                    }
+                    if (nextId != null) {
+                        FlowElement element = process.getFlowElement(nextId);
+                        if (element instanceof UserTask) {
+                            orderedStateNames.add(((UserTask) element).getName());
+                        } else if (element instanceof EndEvent) {
+                            orderedStateNames.add(((EndEvent) element).getName());
+                        }
+                    }
+                    currentId = nextId;
+                }
+            }
+
+            if (orderedStateNames.isEmpty()) {
+                for (UserTask task : process.findFlowElementsOfType(UserTask.class)) {
+                    orderedStateNames.add(task.getName());
+                }
+                for (EndEvent end : process.findFlowElementsOfType(EndEvent.class)) {
+                    orderedStateNames.add(end.getName());
+                }
+            }
+
+            if (orderedStateNames.isEmpty()) return;
+
+            workflow.getStates().clear();
+            String[] colors = {
+                "bg-red-50 text-red-600 border-red-200",
+                "bg-amber-50 text-amber-500 border-amber-200",
+                "bg-blue-50 text-blue-600 border-blue-200",
+                "bg-emerald-50 text-emerald-600 border-emerald-200",
+                "bg-slate-50 text-slate-600 border-slate-200",
+                "bg-purple-50 text-purple-600 border-purple-200"
+            };
+
+            for (int i = 0; i < orderedStateNames.size(); i++) {
+                String name = orderedStateNames.get(i);
+                WorkflowState state = WorkflowState.builder()
+                        .name(name)
+                        .label(name)
+                        .colorClass(colors[i % colors.length])
+                        .active(true)
+                        .workflow(workflow)
+                        .build();
+                workflow.getStates().add(state);
+            }
+
+            workflow.getTransitions().clear();
+            for (SequenceFlow flow : seqFlows) {
+                FlowElement src = process.getFlowElement(flow.getSourceRef());
+                FlowElement tgt = process.getFlowElement(flow.getTargetRef());
+                if (src != null && tgt != null) {
+                    String from = (src instanceof UserTask) ? ((UserTask) src).getName() : src.getName();
+                    String to = (tgt instanceof UserTask) ? ((UserTask) tgt).getName() : tgt.getName();
+                    if (from != null && to != null) {
+                        WorkflowTransition transition = WorkflowTransition.builder()
+                                .fromState(from)
+                                .toState(to)
+                                .requiresComment(false)
+                                .workflow(workflow)
+                                .build();
+                        workflow.getTransitions().add(transition);
+                    }
+                }
+            }
+
+            workflowRepository.save(workflow);
+        } catch (Exception e) {
+            System.err.println("Erreur lors de la synchronisation avec Flowable: " + e.getMessage());
+        }
+    }
 
     public WorkflowService(WorkflowRepository workflowRepository, IncidentRepository incidentRepository) {
         this.workflowRepository = workflowRepository;

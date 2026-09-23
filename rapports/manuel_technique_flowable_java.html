@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manuel Technique - Intégration Flowable</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap');
+        
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background-color: #ffffff;
+            color: #333333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px 60px;
+            font-size: 13px;
+        }
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+        }
+        .document-header {
+            border-bottom: 2px solid #1a365d;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        .document-header h1 {
+            color: #1a365d;
+            font-size: 24px;
+            margin: 0 0 5px 0;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .document-header h2 {
+            color: #4a5568;
+            font-size: 15px;
+            margin: 0;
+            font-weight: 400;
+        }
+        .section {
+            margin-bottom: 35px;
+            page-break-inside: avoid;
+        }
+        .section-title {
+            color: #2c5282;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 5px;
+        }
+        p {
+            margin: 0 0 12px 0;
+            text-align: justify;
+        }
+        /* Code Block Styling */
+        .code-container {
+            background-color: #f8f9fa;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid #2c5282;
+            border-radius: 4px;
+            margin: 15px 0;
+            overflow: hidden;
+            page-break-inside: avoid;
+        }
+        .code-header {
+            background-color: #edf2f7;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-family: 'Fira Code', monospace;
+            color: #4a5568;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+        }
+        pre {
+            margin: 0;
+            padding: 12px;
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            color: #2d3748;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .highlight { color: #d53f8c; font-weight: 500; }
+        .keyword { color: #3182ce; font-weight: 500; }
+        .string { color: #38a169; }
+        .footer {
+            margin-top: 40px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+            text-align: center;
+            font-size: 10px;
+            color: #a0aec0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="document-header">
+        <h1>Dossier Technique Détaillé</h1>
+        <h2>Comment Flowable a été intégré au Backend et à la Base de Données</h2>
+    </div>
+
+    <div class="section">
+        <div class="section-title">1. Introduction au Cœur du Système (Backend)</div>
+        <p>Contrairement aux solutions BPM isolées (stand-alone), nous avons choisi une architecture dite "embarquée" (Embedded Engine). Le moteur Flowable est compilé et s'exécute directement à l'intérieur de notre Backend Java (Spring Boot). Cela permet une communication synchrone (sans latence réseau) entre la logique métier (IncidentFlow) et le moteur de processus (Flowable).</p>
+    </div>
+
+    <div class="section">
+        <div class="section-title">2. Configuration Maven (pom.xml)</div>
+        <p>L'intégration a débuté par l'ajout du "Starter" officiel dans le fichier <code>pom.xml</code> de Spring Boot. Ce starter configure automatiquement le moteur au démarrage de l'application.</p>
+        <div class="code-container">
+            <div class="code-header">backend/pom.xml</div>
+<pre>
+&lt;dependency&gt;
+    &lt;groupId&gt;<span class="string">org.flowable</span>&lt;/groupId&gt;
+    &lt;artifactId&gt;<span class="string">flowable-spring-boot-starter-process</span>&lt;/artifactId&gt;
+    &lt;version&gt;<span class="highlight">7.0.1</span>&lt;/version&gt;
+&lt;/dependency&gt;
+</pre>
+        </div>
+        <p>Grâce à cette dépendance, Spring injecte automatiquement les 4 services fondamentaux dans nos classes Java : <code>RepositoryService</code>, <code>RuntimeService</code>, <code>TaskService</code>, et <code>HistoryService</code>.</p>
+    </div>
+
+    <div class="section">
+        <div class="section-title">3. Modification de la Base de Données (PostgreSQL)</div>
+        <p>Lors du premier démarrage du Backend avec cette dépendance, Flowable a automatiquement exécuté des scripts SQL pour générer plus de 40 tables système dans la base <code>IncidentFlow_db</code> (ex: <code>ACT_RU_EXECUTION</code>, <code>ACT_HI_TASKINST</code>). C'est le schéma d'exécution.</p>
+        <p>Côté métier, notre table <code>incidents</code> a dû être modifiée pour créer une jointure logique vers Flowable :</p>
+        <div class="code-container">
+            <div class="code-header">Modification SQL (Entité Incident.java)</div>
+<pre>
+<span class="keyword">ALTER TABLE</span> incidents <span class="keyword">ADD COLUMN</span> process_instance_id VARCHAR(255);
+</pre>
+        </div>
+        <p>Ce champ est la "clé étrangère conceptuelle". Il relie la ligne de l'incident (métier) à l'instance du workflow en cours (Flowable).</p>
+    </div>
+
+    <div class="section">
+        <div class="section-title">4. Déploiement Dynamique (Code Backend)</div>
+        <p>La page web permet d'envoyer un fichier XML (BPMN 2.0). Côté Backend, c'est le <code>RepositoryService</code> qui réceptionne ce fichier et l'inscrit dans la base de données (table <code>ACT_RE_DEPLOYMENT</code>) pour rendre ce workflow exécutable.</p>
+        <div class="code-container">
+            <div class="code-header">WorkflowController.java</div>
+<pre>
+<span class="keyword">@Autowired</span>
+<span class="keyword">private</span> RepositoryService repositoryService;
+
+<span class="keyword">public</span> void deployProcess(MultipartFile file) {
+    repositoryService.createDeployment()
+        .addInputStream(file.getOriginalFilename(), file.getInputStream())
+        .name(<span class="string">"Incident Workflow"</span>)
+        .deploy();
+}
+</pre>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">5. Le Cycle de Vie d'un Incident (Runtime & Task Services)</div>
+        <p>C'est ici que l'orchestration s'opère. Lorsqu'un utilisateur crée un ticket dans React, l'API Java intercepte la requête, sauvegarde la donnée, puis <strong>délègue</strong> le flux à Flowable :</p>
+        
+        <div class="code-container">
+            <div class="code-header">IncidentService.java - Phase 1 : Démarrage</div>
+<pre>
+<span class="highlight">// 1. Le Backend démarre le processus BPMN (dont la clé est 'incidentWorkflow')</span>
+ProcessInstance instance = runtimeService.startProcessInstanceByKey(<span class="string">"incidentWorkflow"</span>);
+
+<span class="highlight">// 2. On lie la donnée métier au processus</span>
+incident.setProcessInstanceId(instance.getId());
+
+<span class="highlight">// 3. On demande à Flowable : "Où en est le ticket ?"</span>
+Task currentTask = taskService.createTaskQuery()
+    .processInstanceId(instance.getId())
+    .singleResult();
+    
+<span class="highlight">// Le statut devient automatiquement le nom défini dans le schéma Modeler (ex: "Nouveau")</span>
+incident.setStatus(currentTask.getName());
+</pre>
+        </div>
+
+        <p>Lorsqu'un opérateur valide une étape (bouton "Passer à En cours"), le code fait appel à la méthode <code>complete()</code> :</p>
+        <div class="code-container">
+            <div class="code-header">IncidentService.java - Phase 2 : Transition</div>
+<pre>
+<span class="highlight">// On ordonne au moteur de valider l'étape actuelle</span>
+taskService.complete(currentTask.getId());
+
+<span class="highlight">// Flowable calcule automatiquement la prochaine étape selon le BPMN !</span>
+Task nextTask = taskService.createTaskQuery()
+    .processInstanceId(incident.getProcessInstanceId())
+    .singleResult();
+    
+<span class="keyword">if</span> (nextTask != null) {
+    incident.setStatus(nextTask.getName());
+}
+</pre>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">6. Conclusion et Traçabilité</div>
+        <p>Grâce à cette architecture fortement couplée, le code Java ne contient plus aucune condition de type <code>if (status == "Nouveau") then...</code>. Toute la logique est régie par la base de données Flowable. En parallèle, chaque appel à <code>startProcessInstanceByKey</code> ou <code>complete</code> déclenche automatiquement des inserts dans les tables d'audit (<code>ACT_HI_*</code>), constituant l'historique légal (HistoryService) sans ligne de code supplémentaire.</p>
+    </div>
+
+    <div class="footer">
+        Dossier Technique Détaillé - Intégration Java Spring Boot & PostgreSQL
+    </div>
+</div>
+
+</body>
+</html>

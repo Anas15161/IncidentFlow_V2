@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { KanbanView } from './KanbanView';
 import { AnalyticsKPIWidget } from './AnalyticsKPIWidget';
-import { AuditTrailView } from './AuditTrailView';
 import { DashboardView } from './components/DashboardView';
 import { IncidentListView } from './components/IncidentListView';
 import { IncidentDetailView } from './components/IncidentDetailView';
@@ -40,7 +39,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import './App.css';
 
-const API_BASE = 'http://localhost:8080/api';
+const API_BASE = 'http://localhost:8081/api';
 
 const USERS = [
   { id: 1, name: "Anas Haddou", firstName: "Anas", lastName: "Haddou", email: "anas@netmar.com", role: "Administrateur", department: "Informatique", post: "Administrateur Système", avatarColor: "bg-blue-600" },
@@ -753,7 +752,7 @@ function App() {
     if (isAuthenticated) {
       fetchIncidents();
     }
-  }, [statusFilter, categoryFilter, priorityFilter, sortBy, currentUser, isAuthenticated]);
+  }, [statusFilter, categoryFilter, priorityFilter, sortBy, currentUser, isAuthenticated, searchQuery]);
 
   // Initial load on login
   useEffect(() => {
@@ -2082,8 +2081,6 @@ function App() {
                   }
                 }}
               />
-            ) : currentView === 'audit' ? (
-              <AuditTrailView auditLogs={auditLogs} currentUser={currentUser} />
             ) : currentView === 'workflows' ? (
               <WorkflowConfigView
                 handleSaveWorkflowGlobally={handleSaveWorkflowGlobally}

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dossier d'Architecture - Intégration Flowable</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap');
+        
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background-color: #ffffff;
+            color: #333333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px 60px;
+            font-size: 13px; /* Smaller base font for print */
+        }
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+        }
+        .document-header {
+            border-bottom: 2px solid #1a365d;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        .document-header h1 {
+            color: #1a365d;
+            font-size: 24px;
+            margin: 0 0 5px 0;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .document-header h2 {
+            color: #4a5568;
+            font-size: 15px;
+            margin: 0;
+            font-weight: 400;
+        }
+        .section {
+            margin-bottom: 35px;
+            page-break-inside: avoid;
+        }
+        .section-title {
+            color: #2c5282;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 5px;
+        }
+        p {
+            margin: 0 0 12px 0;
+            text-align: justify;
+        }
+        /* Code Block Styling for Print */
+        .code-container {
+            background-color: #f8f9fa;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid #2c5282;
+            border-radius: 4px;
+            margin: 15px 0;
+            overflow: hidden;
+            page-break-inside: avoid;
+        }
+        .code-header {
+            background-color: #edf2f7;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-family: 'Fira Code', monospace;
+            color: #4a5568;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+        }
+        pre {
+            margin: 0;
+            padding: 12px;
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            color: #2d3748;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .highlight { color: #d53f8c; font-weight: 500; }
+        .keyword { color: #3182ce; font-weight: 500; }
+        .string { color: #38a169; }
+        
+        .footer {
+            margin-top: 40px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+            text-align: center;
+            font-size: 10px;
+            color: #a0aec0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="document-header">
+        <h1>Dossier d'Architecture Logicielle</h1>
+        <h2>Orchestration BPMN via Flowable Engine (V2) - Extraits de Code</h2>
+    </div>
+
+    <div class="section">
+        <div class="section-title">1. Philosophie de l'Orchestration</div>
+        <p>L'objectif de cette migration est de supprimer la logique de workflow codée en dur (algorithmes complexes de graphes) au profit d'un moteur certifié BPMN 2.0. Cela garantit une séparation stricte entre l'environnement de modélisation métier (Design Time) et le backend d'exécution (Runtime).</p>
+    </div>
+
+    <div class="section">
+        <div class="section-title">2. Base de Données : Jointure Conceptuelle</div>
+        <p>Pour lier le moteur Flowable aux entités métier, la classe <code>Incident</code> a été modifiée pour persister l'identifiant de l'instance du processus BPMN en cours.</p>
+        
+        <div class="code-container">
+            <div class="code-header">src/.../model/Incident.java (Extrait)</div>
+<pre>
+<span class="keyword">@Entity</span>
+<span class="keyword">@Table</span>(name = <span class="string">"incidents"</span>)
+<span class="keyword">public class</span> Incident {
+    <span class="keyword">@Id</span>
+    <span class="keyword">@GeneratedValue</span>(strategy = GenerationType.IDENTITY)
+    <span class="keyword">private</span> Long id;
+
+    <span class="keyword">@Column</span>(name = <span class="string">"incident_code"</span>, unique = <span class="keyword">true</span>)
+    <span class="keyword">private</span> String incidentCode;
+
+    <span class="highlight">/** 
+     * Identifiant de l'instance BPMN dans le moteur Flowable.
+     * Permet à l'API de retrouver la tâche active de cet incident.
+     */</span>
+    <span class="keyword">@Column</span>(name = <span class="string">"process_instance_id"</span>)
+    <span class="keyword">private</span> String processInstanceId;
+    
+    <span class="keyword">// ... autres propriétés</span>
+}
+</pre>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">3. Backend (Java) : Démarrage du Processus via API Flowable</div>
+        <p>Lors de la création d'un incident, le service Java délègue la gestion de l'état au moteur <code>RuntimeService</code> de Flowable, au lieu de définir manuellement le statut.</p>
+
+        <div class="code-container">
+            <div class="code-header">src/.../service/IncidentService.java (Méthode createIncident)</div>
+<pre>
+<span class="keyword">java.util.Map</span>&lt;String, Object&gt; variables = <span class="keyword">new</span> java.util.HashMap&lt;&gt;();
+variables.put(<span class="string">"incidentCode"</span>, incident.getIncidentCode());
+
+<span class="highlight">// Le moteur démarre l'instance basée sur le BPMN déployé</span>
+<span class="keyword">org.flowable.engine.runtime.ProcessInstance</span> processInstance = 
+    runtimeService.startProcessInstanceByKey(<span class="string">"incidentWorkflow"</span>, variables);
+
+incident.setProcessInstanceId(processInstance.getId());
+
+<span class="highlight">// Interrogation de la première tâche active définie par le workflow</span>
+<span class="keyword">org.flowable.task.api.Task</span> currentTask = taskService.createTaskQuery()
+    .processInstanceId(processInstance.getId())
+    .singleResult();
+
+<span class="keyword">if</span> (currentTask != <span class="keyword">null</span>) {
+    incident.setStatus(currentTask.getName()); <span class="keyword">// ex: "Nouveau"</span>
+}
+</pre>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">4. Backend (Java) : Déploiement Dynamique (Sans Recompilation)</div>
+        <p>Le point d'orgue de l'architecture est le déploiement "à chaud". L'API REST accepte un fichier XML généré depuis l'interface Modeler et l'injecte dans le moteur via le <code>RepositoryService</code>, mettant à jour la logique applicative en temps réel.</p>
+
+        <div class="code-container">
+            <div class="code-header">src/.../controller/WorkflowController.java (Extrait)</div>
+<pre>
+<span class="keyword">@PostMapping</span>(<span class="string">"/deploy-flowable"</span>)
+<span class="keyword">public</span> ResponseEntity&lt;?&gt; <span class="highlight">deployFlowableProcess</span>(<span class="keyword">@RequestParam</span>(<span class="string">"file"</span>) MultipartFile file) {
+    <span class="keyword">try</span> {
+        org.flowable.engine.repository.Deployment deployment = repositoryService
+            .createDeployment()
+            <span class="highlight">.addInputStream</span>(file.getOriginalFilename(), file.getInputStream())
+            .name(<span class="string">"Dynamic Deployment from UI"</span>)
+            .deploy();
+            
+        <span class="keyword">return</span> ResponseEntity.ok(<span class="string">"Déploiement réussi"</span>);
+    } <span class="keyword">catch</span> (Exception e) {
+        <span class="keyword">return</span> ResponseEntity.badRequest().body(e.getMessage());
+    }
+}
+</pre>
+        </div>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">5. Frontend (React) : Alignement Fonctionnel</div>
+        <p>L'interface ReactFlow (V1) ayant été retirée, la vue Kanban s'aligne désormais strictement sur les 5 états définis formellement dans le modèle BPMN (Nouveau, Assigné, En cours, Résolu, Clôturé), prouvant que l'orchestration est maîtrisée centralement par le moteur.</p>
+    </div>
+
+    <div class="footer">
+        Dossier Technique V2 — Code Source & Modifications
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport d'Architecture - Ségrégation Multi-Schémas & Intégrité Référentielle</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        @page {
+            size: A4;
+            margin: 18mm 14mm 18mm 14mm;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #ffffff;
+            color: #1e293b;
+            line-height: 1.55;
+            margin: 0;
+            padding: 20px 35px;
+            font-size: 12px;
+        }
+
+        .header-container {
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .header-title h1 {
+            color: #0f172a;
+            font-size: 18px;
+            margin: 0 0 4px 0;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            text-transform: uppercase;
+        }
+
+        .header-title h2 {
+            color: #475569;
+            font-size: 12.5px;
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .header-meta {
+            text-align: right;
+            font-size: 10.5px;
+            color: #64748b;
+        }
+
+        .section {
+            margin-bottom: 22px;
+            page-break-inside: avoid;
+        }
+
+        .section-title {
+            color: #0f172a;
+            font-size: 13.5px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .section-number {
+            color: #2563eb;
+            font-weight: 700;
+        }
+
+        p {
+            margin: 0 0 8px 0;
+            text-align: justify;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 11.5px;
+        }
+
+        .data-table th, .data-table td {
+            border: 1px solid #cbd5e1;
+            padding: 6px 10px;
+            text-align: left;
+        }
+
+        .data-table th {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            font-weight: 600;
+        }
+
+        .data-table tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10.5px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .badge-clean { background: #e2e8f0; color: #475569; }
+        .badge-app { background: #dcfce7; color: #166534; }
+        .badge-flowable { background: #ffedd5; color: #9a3412; }
+        .badge-keycloak { background: #dbeafe; color: #1e40af; }
+
+        .code-block {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10.5px;
+            margin: 8px 0;
+            white-space: pre;
+            overflow-x: auto;
+            border-left: 4px solid #2563eb;
+        }
+
+        .code-comment { color: #64748b; }
+        .code-keyword { color: #f472b6; font-weight: bold; }
+        .code-string { color: #38bdf8; }
+
+        .adv-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .adv-card {
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            border-radius: 6px;
+            padding: 10px 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+
+        .adv-card-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+
+        .adv-card-desc {
+            font-size: 11px;
+            color: #475569;
+            margin: 0;
+            line-height: 1.45;
+        }
+
+        .callout-box {
+            background-color: #f8fafc;
+            border-left: 4px solid #2563eb;
+            padding: 10px 14px;
+            margin: 10px 0;
+            font-style: italic;
+            color: #334155;
+            font-size: 11.5px;
+        }
+
+        .footer {
+            margin-top: 25px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 9.5px;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-container">
+        <div class="header-title">
+            <h1>Rapport d'Architecture Logicielle</h1>
+            <h2>Ségrégation Multi-Schémas, Intégrité Référentielle & Modularité (PostgreSQL)</h2>
+        </div>
+        <div class="header-meta">
+            Projet : <strong>IncidentFlow V2</strong><br>
+            Auteur : Anas Benhammou<br>
+            Standard : Domain-Driven Data Isolation
+        </div>
+    </div>
+
+    <!-- Section 1 : Problématique Initiale -->
+    <div class="section">
+        <div class="section-title"><span class="section-number">1.</span> Problématique Initiale : Limites du Schéma Monolithique</div>
+        <p>
+            Lors de la phase initiale de la version V2, l'ensemble des modules d'infrastructure (le gestionnaire d'identités Keycloak et le moteur de workflow Flowable) ainsi que le modèle métier applicatif cohabitaient au sein de l'unique schéma par défaut de PostgreSQL (<code>public</code>).
+        </p>
+        <p>
+            Cette centralisation présentait des faiblesses architecturales manifestes : pollution de l'espace de nommage (plus de 150 tables hétérogènes entremêlées dans les outils d'administration), couplage fort entre composants tiers et applicatifs, et impossibilité de définir des politiques de sauvegarde ou de droits granulaires.
+        </p>
+    </div>
+
+    <!-- Section 2 : Topologie Cible -->
+    <div class="section">
+        <div class="section-title"><span class="section-number">2.</span> Architecture Cible : Partitionnement en 4 Schémas Dédiés</div>
+        <p>
+            Pour répondre aux normes industrielles d'isolation des domaines, la base de données <code>IncidentFlow_db</code> a été structurée en <strong>quatre compartiments logiques étanches</strong> :
+        </p>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Schéma PostgreSQL</th>
+                    <th>Domaine de Responsabilité</th>
+                    <th>Fournisseur / Moteur</th>
+                    <th>Tables Actives</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="badge badge-clean">public</span></td>
+                    <td>Schéma technique standard PostgreSQL</td>
+                    <td>SGBD Core</td>
+                    <td><strong>0 table</strong> (Maintenu 100% vierge)</td>
+                </tr>
+                <tr>
+                    <td><span class="badge badge-app">incidentflow</span></td>
+                    <td>Entités Métier (Incidents, Commentaires, Pièces jointes)</td>
+                    <td>Hibernate 6 / JPA (Spring Boot)</td>
+                    <td><strong>11 tables</strong></td>
+                </tr>
+                <tr>
+                    <td><span class="badge badge-flowable">flowable</span></td>
+                    <td>Orchestration BPMN 2.0, Runtime et Audit Log natif</td>
+                    <td>Flowable Engine 7.0.1</td>
+                    <td><strong>47 tables</strong></td>
+                </tr>
+                <tr>
+                    <td><span class="badge badge-keycloak">keycloak</span></td>
+                    <td>Identités, Cryptographie, Sessions JWT, Rôles RBAC</td>
+                    <td>Keycloak 21.1.1 (Quarkus)</td>
+                    <td><strong>92 tables</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Section 3 : Mécanisme de Transition & Auto-Provisionnement -->
+    <div class="section">
+        <div class="section-title"><span class="section-number">3.</span> Mécanisme de Transition : Configuration Déclarative vs "Réinstallation"</div>
+        <p>
+            Il est capital de préciser qu'<strong>aucune réinstallation logicielle lourde</strong> n'a été opérée. Dans un écosystème conteneurisé moderne (Docker), la ségrégation repose entièrement sur le paradigme de l'<strong>Infrastructure as Code (IaC) déclarative</strong> :
+        </p>
+        <ul>
+            <li><strong>Auto-Provisionnement Keycloak :</strong> En spécifiant <code>KC_DB_SCHEMA=keycloak</code> dans <code>docker-compose.yml</code>, le moteur interne Liquibase de Keycloak a détecté le schéma cible et a automatiquement créé les 92 tables au redémarrage, important de façon transparente le royaume (<code>realm-export.json</code>).</li>
+            <li><strong>Auto-Provisionnement Flowable & Hibernate :</strong> Par injection des propriétés <code>flowable.database-schema=flowable</code> et <code>spring.jpa.properties.hibernate.default_schema=incidentflow</code>, Spring Boot a délégué la création des tables à leurs moteurs respectifs.</li>
+            <li><strong>Purge finale du schéma public :</strong> Une commande DDL atomique (<code>DROP SCHEMA public CASCADE; CREATE SCHEMA public;</code>) a nettoyé l'ancien schéma encombré, le laissant à 0 table.</li>
+        </ul>
+    </div>
+
+    <!-- Section 4 : Intégrité Référentielle et Clés Étrangères -->
+    <div class="section">
+        <div class="section-title"><span class="section-number">4.</span> Intégrité Référentielle : Préservation des Clés Étrangères</div>
+        <p>
+            Une préoccupation majeure lors du déplacement vers des schémas multiples concerne la préservation des contraintes relationnelles. L'audit du dictionnaire de données PostgreSQL (<code>information_schema.table_constraints</code>) atteste de la parfaite intégrité du modèle :
+        </p>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Schéma Relationnel</th>
+                    <th>Nombre de Clés Étrangères SQL Actives</th>
+                    <th>Exemples de Relations Préservées</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>incidentflow</code></td>
+                    <td><strong>12 contraintes</strong></td>
+                    <td><code>comments.incident_id → incidents.id</code>, <code>incidents.author_id → users.id</code></td>
+                </tr>
+                <tr>
+                    <td><code>flowable</code></td>
+                    <td><strong>46 contraintes</strong></td>
+                    <td><code>act_ru_task.execution_id_ → act_ru_execution.id_</code></td>
+                </tr>
+                <tr>
+                    <td><code>keycloak</code></td>
+                    <td><strong>74 contraintes</strong></td>
+                    <td><code>user_role_mapping.user_id → user_entity.id</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="callout-box">
+            <strong>Le Concept Fondamental de Clé Étrangère Conceptuelle (Soft Foreign Key) :</strong><br>
+            Entre le schéma métier (<code>incidentflow</code>) et le moteur de workflow (<code>flowable</code>), la liaison est assurée par la colonne <code>process_instance_id</code>. Dans une architecture orientée services, <strong>il est formellement proscrit</strong> de poser une contrainte SQL physique dure (<code>REFERENCES flowable...</code>) vers un framework tiers. Une telle contrainte interdirait la purge des historiques, bloquerait les migrations indépendantes et briserait le principe de découplage strict (Bounded Context - DDD).
+        </div>
+    </div>
+
+    <!-- Section 5 : Cycle de Vie BPMN et Versioning -->
+    <div class="section">
+        <div class="section-title"><span class="section-number">5.</span> Cycle de Vie BPMN : Résolution de l'Anomalie des Versions Multiples</div>
+        <p>
+            Lors des premières itérations, l'affichage de "trois modèles" dans la base de données s'expliquait par deux mécanismes natifs de Flowable :
+        </p>
+        <ul>
+            <li><strong>Le Versioning Automatique :</strong> Flowable ne supprime jamais un modèle modifié ; il incrémente une colonne de version (<code>version_ = 1, 2, 3</code> dans <code>act_re_procdef</code>) afin que les instances d'incidents déjà en cours puissent s'achever sans interruption de service.</li>
+            <li><strong>Découplage Modeler / Runtime :</strong> La suppression d'un dessin dans l'interface de modélisation (Flowable Modeler) ne désinstalle pas le binaire exécutable déployé dans le moteur (Engine).</li>
+        </ul>
+        <p>
+            La transition vers le schéma propre <code>flowable</code> a permis une réinitialisation intégrale : la table <code>flowable.act_re_procdef</code> ne contient désormais plus qu'<strong>un unique processus actif certifié</strong> (<code>incidentWorkflow:1</code>), aligné avec le fichier XML source du projet.
+        </p>
+    </div>
+
+    <!-- Section 6 : Avantages Comparatifs pour l'Entreprise -->
+    <div class="section">
+        <div class="section-title"><span class="section-number">6.</span> Avantages Comparatifs pour l'Entreprise</div>
+        
+        <div class="adv-grid">
+            <div class="adv-card">
+                <div class="adv-card-title">1. Sécurité & Moindre Privilège (RBAC DB)</div>
+                <p class="adv-card-desc">Chaque composant dispose d'un rôle SQL restreint à son schéma. L'application métier ne peut ni lire ni altérer les mots de passe et credentials de Keycloak.</p>
+            </div>
+            <div class="adv-card">
+                <div class="adv-card-title">2. Sauvegardes Sélectives (Backup & Restore)</div>
+                <p class="adv-card-desc">Possibilité d'exporter uniquement le schéma métier avec <code>pg_dump -n incidentflow</code> (quelques kilo-octets) sans répliquer 92 tables de sessions IAM temporaires.</p>
+            </div>
+            <div class="adv-card">
+                <div class="adv-card-title">3. Cycle de Vie et Mises à Niveau Découplés</div>
+                <p class="adv-card-desc">Mise à niveau (Upgrade) de Flowable ou Keycloak sans aucun risque d'impact de schéma ou de régression sur les entités de gestion d'incidents.</p>
+            </div>
+            <div class="adv-card">
+                <div class="adv-card-title">4. Conformité & Gouvernance des Données (RGPD)</div>
+                <p class="adv-card-desc">Séparation physique stricte entre les données identitaires (schéma <code>keycloak</code>) et les données opérationnelles techniques (schéma <code>incidentflow</code>).</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 7 : Procédure de Renommage Facile -->
+    <div class="section">
+        <div class="section-title"><span class="section-number">7.</span> Procédure de Renommage et Haute Flexibilité</div>
+        <p>
+            Si l'organisation souhaite adapter la nomenclature de ses domaines (par exemple, renommer <code>incidentflow</code> en <code>core_incidents</code> ou <code>keycloak</code> en <code>iam_security</code>), l'opération s'effectue en deux étapes immédiates sans modification de code Java :
+        </p>
+
+        <div class="code-block"><span class="code-comment">-- Étape A : Renommage atomique instantané au niveau PostgreSQL</span>
+<span class="code-keyword">ALTER SCHEMA</span> incidentflow <span class="code-keyword">RENAME TO</span> core_incidents;
+<span class="code-keyword">ALTER SCHEMA</span> keycloak <span class="code-keyword">RENAME TO</span> iam_security;</div>
+
+        <div class="code-block"><span class="code-comment"># Étape B : Ajustement déclaratif des variables d'environnement (docker-compose / properties)</span>
+<span class="code-keyword">spring.jpa.properties.hibernate.default_schema</span>=<span class="code-string">core_incidents</span>
+<span class="code-keyword">KC_DB_SCHEMA:</span> <span class="code-string">iam_security</span></div>
+    </div>
+
+    <div class="footer">
+        <span>IncidentFlow V2 — Dossier d'Architecture de Données & Intégrité</span>
+        <span>Validation Académique & Soutenance de Stage</span>
+    </div>
+
+</body>
+</html>
