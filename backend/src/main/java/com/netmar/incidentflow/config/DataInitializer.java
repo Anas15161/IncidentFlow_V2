@@ -200,10 +200,43 @@ public class DataInitializer implements CommandLineRunner {
                     .build());
         }
 
-        User anas = userRepository.findByEmail("anas@netmar.com").orElseThrow();
-        User marie = userRepository.findByEmail("marie.l@netmar.com").orElseThrow();
-        User sophie = userRepository.findByEmail("sophie.m@netmar.com").orElseThrow();
-        User drJean = userRepository.findByEmail("jean.r@netmar.com").orElseThrow();
+        if (userRepository.findByEmail("admin@netmar.com").isEmpty()) {
+            userRepository.save(User.builder()
+                    .name("Admin Système")
+                    .firstName("Admin")
+                    .lastName("Système")
+                    .department("Informatique")
+                    .post("Administrateur Système")
+                    .email("admin@netmar.com")
+                    .password(passwordEncoder.encode("password"))
+                    .role(adminRole)
+                    .active(true)
+                    .telephone("+33 6 00 00 00 01")
+                    .avatarColor("bg-gray-800")
+                    .build());
+        }
+
+        if (userRepository.findByEmail("operateur@netmar.com").isEmpty()) {
+            userRepository.save(User.builder()
+                    .name("Agent Opérateur")
+                    .firstName("Agent")
+                    .lastName("Opérateur")
+                    .department("Support")
+                    .post("Opérateur")
+                    .email("operateur@netmar.com")
+                    .password(passwordEncoder.encode("password"))
+                    .role(opeRole)
+                    .active(true)
+                    .telephone("+33 6 00 00 00 02")
+                    .avatarColor("bg-emerald-600")
+                    .build());
+        }
+
+        User anas = userRepository.findByEmail("anas@netmar.com").orElse(null);
+        User marie = userRepository.findByEmail("marie.l@netmar.com").orElse(null);
+        User sophie = userRepository.findByEmail("sophie.m@netmar.com").orElse(null);
+        User drJean = userRepository.findByEmail("jean.r@netmar.com").orElse(null);
+        User adminUser = userRepository.findByEmail("admin@netmar.com").orElseThrow();
 
         // 3. Initialiser les Workflows
         if (workflowRepository.count() == 0) {
@@ -365,7 +398,7 @@ public class DataInitializer implements CommandLineRunner {
             String[] priorities = {"Low", "Medium", "High", "Critical"};
             String[] severities = {"Mineur", "Majeur", "Important", "Critique"};
             String[] statuses = {"Nouveau", "En cours", "Résolu", "Fermé"};
-            User[] authors = {anas, sophie, marie, drJean};
+            User[] authors = java.util.stream.Stream.of(adminUser, anas, sophie, marie, drJean).filter(java.util.Objects::nonNull).toArray(User[]::new);
             
             java.util.Random random = new java.util.Random();
             
