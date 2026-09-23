@@ -53,9 +53,24 @@ function App() {
 
 
   // Authentication states
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [token, setToken] = useState('');
-  const [currentUser, setCurrentUser] = useState(USERS[0]);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!(window.keycloak && window.keycloak.authenticated));
+  const [token, setToken] = useState(() => window.keycloak ? window.keycloak.token : '');
+  const [currentUser, setCurrentUser] = useState(() => {
+    if (window.keycloak && window.keycloak.tokenParsed) {
+      const parsed = window.keycloak.tokenParsed;
+      return {
+        id: parsed.sub,
+        email: parsed.email || parsed.preferred_username,
+        name: parsed.name || parsed.preferred_username,
+        firstName: parsed.given_name || '',
+        lastName: parsed.family_name || '',
+        role: "Administrateur",
+        department: "Keycloak",
+        avatarColor: "bg-blue-600"
+      };
+    }
+    return USERS[0];
+  });
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -612,8 +627,7 @@ function App() {
   const getHeaders = () => {
     return {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      'X-Mock-User': currentUser.email
+      'Authorization': `Bearer ${window.keycloak?.token || token}`
     };
   };
 
@@ -809,21 +823,8 @@ function App() {
 
   // Handle Logout
   const handleLogout = async () => {
-    try {
-      await fetch(`${API_BASE}/auth/logout`, {
-        method: 'POST',
-        headers: getHeaders()
-      });
-    } catch (err) {
-      console.error("Error on logout:", err);
-    } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      setIsAuthenticated(false);
-      setToken('');
-      setCurrentUser(USERS[0]);
-      setCurrentView('dashboard');
-      setSelectedIncidentCode(null);
+    if (window.keycloak) {
+      window.keycloak.logout();
     }
   };
 

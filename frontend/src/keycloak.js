@@ -1,8 +1,8 @@
 import Keycloak from 'keycloak-js';
 
 const keycloakConfig = {
-  url: 'http://localhost:8180/',
-  realm: 'incidentflow',
+  url: 'http://localhost:8181/',
+  realm: 'incidentflow-realm',
   clientId: 'incidentflow-frontend'
 };
 
