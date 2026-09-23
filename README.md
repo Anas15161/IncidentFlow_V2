@@ -1,130 +1,93 @@
-# IncidentFlow - Application de Gestion d'Incidents
+# IncidentFlow V2 - Gestion d'Incidents & Moteur de Workflow BPMN
 
-IncidentFlow est une application moderne de gestion, déclaration et suivi d'incidents. Elle est dotée d'un concepteur de workflows interactifs (basé sur ReactFlow) et d'une intégration optionnelle avec Keycloak pour la gestion d'identité.
-
----
-
-## 🚀 Architecture du projet
-
-L'application repose sur les technologies suivantes :
-- **Frontend** : React 19, Vite, ReactFlow, Lucide Icons, Vanilla CSS (styles personnalisés).
-- **Backend** : Spring Boot 3, Java 17, Spring Security.
-- **Bases de données & Services (Docker)** :
-  - **PostgreSQL** (Port externe: `5433` / interne: `5432`) : Stockage persistant.
-  - **Redis** (Port externe: `6380` / interne: `6379`) : Cache et sessions.
-  - **Keycloak** (Port externe: `8180` / interne: `8080`) : Gestion d'identité OIDC.
+IncidentFlow V2 est une évolution majeure de la plateforme de gestion d'incidents. Cette version abandonne la machine à états manuelle de la V1 pour intégrer un véritable moteur de workflow industriel (**Flowable BPMN**), et remplace les mocks d'authentification par une gestion d'identité robuste avec **Keycloak**.
 
 ---
 
-## 🛠️ Prérequis
+## ✨ Nouveautés de la Version 2
 
-Assurez-vous de disposer des outils suivants installés sur votre machine :
-- **Java 17** (JDK)
-- **Maven 3.x**
-- **Node.js** (v18 ou supérieure) et `npm`
-- **Docker** et **Docker Compose**
+- **Moteur de Workflow BPMN (Flowable)** : L'application est désormais pilotée par un fichier BPMN 2.0 (`incident_workflow_v2.bpmn20.xml`). La logique de transition (qui peut faire quoi, quand et comment) n'est plus codée en dur dans Java, mais déléguée à Flowable.
+- **Visualiseur BPMN Dynamique** : Intégration d'un outil d'analyse interactif et de génération de rapports PDF (basé sur `bpmn-js`) pour inspecter visuellement le flux de travail, avec un dashboard statistique intégré.
+- **Sécurité OAuth2 & IAM** : Véritable intégration de Keycloak. Spring Boot agit comme un *Resource Server* qui valide les tokens JWT, garantissant une architecture Zero-Trust.
+- **Base de Données Multi-schémas** : Utilisation d'un conteneur PostgreSQL unique hébergeant deux schémas étanches (`incidentflow` et `keycloak`), optimisant les ressources tout en garantissant l'isolation des données.
 
 ---
 
-## ⚙️ Configuration Initiale
+## 🚀 Architecture Technique
 
-Un fichier `.env` se situe à la racine du projet pour configurer les mots de passe de PostgreSQL et de Keycloak :
-```env
-DB_PASSWORD=incidentflow_secure_db_pass
-KC_PASSWORD=admin_secure_keycloak_pass
+- **Backend API** : Spring Boot 3, Java 17, Spring Security (OAuth2), Flowable Engine, Hibernate/JPA.
+- **Frontend** : React 19, Vite, bpmn-js (pour le rendu SVG vectoriel interactif).
+- **Identity Provider (IAM)** : Keycloak (Port `8180`).
+- **Base de Données** : PostgreSQL (Port `5433`).
+
+---
+
+## 📂 Structure du Projet
+
+```text
+├── backend/            # API Spring Boot & Logique Métier (Flowable)
+├── frontend/           # Interface Utilisateur React
+├── docker-compose.yml  # Orchestration de l'infrastructure
+├── postgres/           # Scripts d'initialisation (Multi-schemas)
+├── keycloak/           # Configurations et exports de Realm Keycloak
+├── rapports/           # Ensemble des documentations techniques (PDF/HTML/PUML)
+└── flowable_dynamic_analyzer.html # Outil d'analyse graphique et export PDF des BPMN
 ```
 
 ---
 
-## 🏃 Comment lancer l'application
+## 🛠️ Démarrage Rapide (Environnement de Développement)
 
-Vous pouvez lancer le projet de deux manières différentes.
-
-### Option 1 : Lancement Hybride (Recommandé pour le Développement)
-
-Cette méthode fait tourner les bases de données (PostgreSQL, Redis) dans Docker, tandis que le Backend et le Frontend tournent sur votre machine locale pour faciliter le rechargement à chaud (*Hot Reload*).
-
-#### 1. Démarrer PostgreSQL et Redis
-Depuis la racine du projet, lancez uniquement les conteneurs d'infrastructure nécessaires :
+### 1. Démarrer l'infrastructure (Base de données & Keycloak)
+À la racine du projet, lancez l'infrastructure vitale via Docker :
 ```bash
-docker compose up -d incidentflow-postgres incidentflow-redis
+docker compose up -d incidentflow-postgres keycloak
 ```
+> **Note** : PostgreSQL créera automatiquement les bases de données et les rôles nécessaires au premier lancement grâce au script `postgres/init/01-init-schemas.sql`.
 
-#### 2. Démarrer le Backend Spring Boot
-Dans un nouveau terminal :
+### 2. Démarrer le Backend (Spring Boot)
+Ouvrez un nouveau terminal et lancez le backend :
 ```bash
 cd backend
 mvn spring-boot:run
 ```
-> [!NOTE]
-> Par défaut, le profil Spring `dev-mock` est actif. Dans ce mode, l'authentification avec Keycloak est simulée en interne, ce qui permet de tester l'application facilement en local sans avoir besoin de configurer entièrement Keycloak.
+Le backend démarrera sur le port **`8080`**. Au démarrage, il importera automatiquement le fichier BPMN situé dans `src/main/resources/processes/`.
 
-#### 3. Démarrer le Frontend React + Vite
-Dans un nouveau terminal :
+### 3. Démarrer le Frontend (React)
+Dans un troisième terminal :
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Le serveur de développement démarrera sur le port **`3000`** (configuré dans [vite.config.js](file:///home/anas/Desktop/stage/App/frontend/vite.config.js)).
 Accédez à l'application via : **[http://localhost:3000](http://localhost:3000)**.
 
 ---
 
-### Option 2 : Lancement Complet avec Docker Compose
+## 📊 Outils & Documentation
 
-Cette méthode fait tourner le Backend et l'infrastructure dans Docker.
+Cette version est livrée avec un écosystème documentaire complet généré lors du développement :
 
-#### 1. Compiler le backend
-Puisque le `Dockerfile` du backend copie le fichier `.jar` généré, vous devez d'abord packager l'application :
-```bash
-cd backend
-mvn clean package -DskipTests
-cd ..
-```
+### 1. L'Analyseur Dynamique BPMN
+Ouvrez le fichier `flowable_dynamic_analyzer.html` directement dans votre navigateur web.
+- Importez le fichier XML du workflow pour voir le **schéma interactif**.
+- Un mode "Spotlight" (focus laser) et un tableau d'inventaire permettent de comprendre le rôle de chaque tâche.
+- Un bouton d'**export PDF vectoriel** permet de générer des rapports techniques de haute qualité pour la validation métier.
 
-#### 2. Lancer Docker Compose
-Démarrez tous les services :
-```bash
-docker compose up --build
-```
-Les ports exposés seront :
-- **PostgreSQL** : `localhost:5433`
-- **Redis** : `localhost:6380`
-- **Keycloak** : `http://localhost:8180`
-- **Backend API** : `http://localhost:8080`
-
-#### 3. Démarrer le Frontend localement
-Le frontend n'étant pas conteneurisé par défaut dans le Docker Compose (déclaré mais commenté), lancez-le manuellement :
-```bash
-cd frontend
-npm install
-npm run dev
-```
-Accédez au frontend sur : **[http://localhost:3000](http://localhost:3000)**.
+### 2. Les Rapports d'Architecture
+Dans le dossier `/rapports`, vous trouverez les versions PDF et HTML des décisions d'architecture :
+- **Architecture de Base de données (V2)**
+- **Architecture RBAC & Intégration Keycloak**
+- **Logiques de transition & Cycles de vie Kanban**
+- **Parcours technique Flowable XML**
 
 ---
 
-## 🔑 Comptes de Test (Mode simulation)
+## 🔐 Identifiants par Défaut
 
-En mode de développement hors-ligne (`dev-mock`), l'application initialise automatiquement la base de données avec des comptes fictifs préconfigurés. Utilisez-les pour vous connecter :
+**Keycloak Admin Console** (http://localhost:8180/admin) :
+- User: `admin`
+- Password: *(Défini dans le `.env` à la racine)*
 
-| Rôle | Adresse Email | Mot de passe | Description / Département |
-| :--- | :--- | :--- | :--- |
-| **Administrateur** | `anas@netmar.com` | `password` | Anas Haddou (Informatique) |
-| **Responsable** | `sophie.m@netmar.com` | `password` | Sophie Martin (Sécurité SSI) |
-| **Opérateur** | `marie.l@netmar.com` | `password` | Marie Laurent (Support client) |
-| **Opérateur Médical** | `jean.r@netmar.com` | `password` | Dr. Jean Robert (Urgences médicales) |
-
----
-
-## 📂 Structure du projet
-
-```text
-├── backend/            # Code source Spring Boot (Java)
-├── frontend/           # Code source React (Vite)
-├── keycloak/           # Fichiers de configuration Keycloak
-├── docker-compose.yml  # Fichiers d'orchestration Docker
-├── .env                # Variables d'environnement locales
-└── README.md           # Ce guide de démarrage
-```
+**Comptes de l'Application (Test)** :
+Référez-vous à la documentation Keycloak et au script de Seed initial pour la liste des utilisateurs de test (Administrateur, Superviseur, Opérateur, etc.).
