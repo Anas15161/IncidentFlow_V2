@@ -1,159 +1,52 @@
-/**
- * ============================================================================
- * FICHIER      : useAuth.js
- * EMPLACEMENT  : src/hooks
- * DESCRIPTION  : Hook React personnalisé gérant l'authentification, le token de session et les informations de l'utilisateur connecté.
- * ============================================================================
- * Ce fichier a été documenté pour faciliter la compréhension du code.
- */
-
 import { useState, useEffect } from 'react';
 
-const API_BASE = 'http://localhost:8081/api';
-
-export const USERS = [
-  { id: 1, name: "Anas Haddou", firstName: "Anas", lastName: "Haddou", email: "anas@netmar.com", role: "Administrateur", department: "Informatique", post: "Administrateur Système", avatarColor: "bg-blue-600" },
-  { id: 2, name: "Sophie Martin", firstName: "Sophie", lastName: "Martin", email: "sophie.m@netmar.com", role: "Responsable", department: "Sécurité", post: "Responsable SSI", avatarColor: "bg-purple-600" },
-  { id: 3, name: "Marie Laurent", firstName: "Marie", lastName: "Laurent", email: "marie.l@netmar.com", role: "Opérateur", department: "Support client", post: "Opératrice Réseau", avatarColor: "bg-emerald-600" },
-  { id: 4, name: "Dr. Jean Robert", firstName: "Jean", lastName: "Robert", email: "jean.r@netmar.com", role: "Opérateur médical", department: "Urgences médicales", post: "Médecin Coordinateur", avatarColor: "bg-red-600" }
-];
+const API_BASE = 'http://localhost:8081/api'; 
 
 export function useAuth() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [token, setToken] = useState('');
-  const [currentUser, setCurrentUser] = useState(USERS[0]);
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [showLoginPassword, setShowLoginPassword] = useState(false);
-  const [isCapsLockOn, setIsCapsLockOn] = useState(false);
-
-  const [sessionDuration, setSessionDuration] = useState(() => {
-    return parseInt(localStorage.getItem('sessionDuration') || '600');
-  });
-  const [sessionTimeLeft, setSessionTimeLeft] = useState(() => {
-    return parseInt(localStorage.getItem('sessionDuration') || '600');
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!(window.keycloak && window.keycloak.authenticated));
+  const [token, setToken] = useState(() => window.keycloak ? window.keycloak.token : '');
+  const [currentUser, setCurrentUser] = useState(() => {
+    if (window.keycloak && window.keycloak.tokenParsed) {
+      const parsed = window.keycloak.tokenParsed;
+      return {
+        id: parsed.sub,
+        email: parsed.email || parsed.preferred_username,
+        name: parsed.name || parsed.preferred_username,
+        firstName: parsed.given_name || '',
+        lastName: parsed.family_name || '',
+        role: "Administrateur", // Simplification pour le frontend
+        department: "Keycloak",
+        avatarColor: "bg-blue-600"
+      };
+    }
+    return null;
   });
 
   const getHeaders = () => {
     return {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      'X-Mock-User': currentUser.email
+      'Authorization': `Bearer ${window.keycloak?.token || token}`
     };
   };
 
-  // Load Session on start
-  useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setCurrentUser(JSON.parse(savedUser));
-      setIsAuthenticated(true);
-    }
-  }, []);
-
-  // Handle Logout
   const handleLogout = async () => {
-    try {
-      await fetch(`${API_BASE}/auth/logout`, {
-        method: 'POST',
-        headers: getHeaders()
-      });
-    } catch (err) {
-      console.error("Error on logout:", err);
-    } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      setIsAuthenticated(false);
-      setToken('');
-      setCurrentUser(USERS[0]);
+    if (window.keycloak) {
+      window.keycloak.logout();
     }
-  };
-
-  // Session timer auto-logout
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    const interval = setInterval(() => {
-      setSessionTimeLeft(prev => {
-        if (prev <= 1) {
-          handleLogout();
-          alert("Votre session a expiré. Déconnexion automatique.");
-          return sessionDuration;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isAuthenticated, sessionDuration]);
-
-  // Handle Login Form Submission
-  const handleLoginSubmit = async (e) => {
-    e.preventDefault();
-    setLoginError('');
-    if (!loginEmail || !loginPassword) {
-      setLoginError("L'adresse email et le mot de passe sont obligatoires.");
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: loginEmail, password: loginPassword })
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || "Identifiants invalides.");
-      }
-
-      const data = await res.json();
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      setToken(data.token);
-      setCurrentUser(data.user);
-      setIsAuthenticated(true);
-      setSessionTimeLeft(sessionDuration);
-      return { success: true };
-    } catch (err) {
-      setLoginError(err.message);
-      return { success: false };
-    }
-  };
-
-  // Quick click login buttons for testing
-  const triggerQuickLogin = (email) => {
-    setLoginEmail(email);
-    setLoginPassword('password');
   };
 
   return {
     isAuthenticated,
-    setIsAuthenticated,
     token,
     currentUser,
-    setCurrentUser,
-    loginEmail,
-    setLoginEmail,
-    loginPassword,
-    setLoginPassword,
-    loginError,
-    setLoginError,
-    showLoginPassword,
-    setShowLoginPassword,
-    isCapsLockOn,
-    setIsCapsLockOn,
-    sessionDuration,
-    setSessionDuration,
-    sessionTimeLeft,
-    setSessionTimeLeft,
     getHeaders,
     handleLogout,
-    handleLoginSubmit,
-    triggerQuickLogin
+    // Stub methods for LoginPage fallback
+    loginEmail: '', setLoginEmail: () => {},
+    loginPassword: '', setLoginPassword: () => {},
+    loginError: '', setLoginError: () => {},
+    showLoginPassword: false, setShowLoginPassword: () => {},
+    triggerQuickLogin: () => {},
+    handleLoginSubmit: (e) => { e.preventDefault(); if (window.keycloak) window.keycloak.login(); }
   };
 }

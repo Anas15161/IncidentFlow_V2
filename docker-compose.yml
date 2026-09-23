@@ -75,7 +75,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://incidentflow-postgres-v2:5432/IncidentFlow_db?currentSchema=incidentflow,flowable,public
       SPRING_DATASOURCE_USERNAME: IncidentFlow_user
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
-      SPRING_PROFILES_ACTIVE: dev-mock
+      SPRING_PROFILES_ACTIVE: prod
       SPRING_DATA_REDIS_HOST: incidentflow-redis-v2
       SPRING_DATA_REDIS_PORT: 6379
       JAVA_TOOL_OPTIONS: "-XX:+UseSerialGC -Xss256k -Xms128m -Xmx384m"

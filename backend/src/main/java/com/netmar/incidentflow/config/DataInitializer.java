@@ -358,6 +358,53 @@ public class DataInitializer implements CommandLineRunner {
             ));
             incidentRepository.save(inc4);
         }
+
+        // 5. Générer 20 incidents supplémentaires si la base n'est pas déjà peuplée
+        if (incidentRepository.count() <= 5) {
+            String[] categories = {"Réseau", "Sécurité", "Système", "Matériel", "Logiciel", "Accès"};
+            String[] priorities = {"Low", "Medium", "High", "Critical"};
+            String[] severities = {"Mineur", "Majeur", "Important", "Critique"};
+            String[] statuses = {"Nouveau", "En cours", "Résolu", "Fermé"};
+            User[] authors = {anas, sophie, marie, drJean};
+            
+            java.util.Random random = new java.util.Random();
+            
+            for (int i = 5; i <= 24; i++) {
+                String cat = categories[random.nextInt(categories.length)];
+                String prio = priorities[random.nextInt(priorities.length)];
+                String sev = severities[random.nextInt(severities.length)];
+                String stat = statuses[random.nextInt(statuses.length)];
+                User author = authors[random.nextInt(authors.length)];
+                User assignee = (stat.equals("Nouveau")) ? null : authors[random.nextInt(authors.length)];
+                
+                Incident inc = Incident.builder()
+                        .incidentCode("INC-GEN-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                        .title("Incident " + cat + " détecté (" + sev + ")")
+                        .description("Généré automatiquement : un problème de type " + cat + " a été signalé sur le composant applicatif ou matériel.")
+                        .category(cat)
+                        .priority(prio)
+                        .severity(sev)
+                        .status(stat)
+                        .author(author)
+                        .assignedTo(assignee)
+                        .workflow(wfStandard)
+                        .slaDueAt(LocalDateTime.now().plusHours(random.nextInt(72) - 24)) // SLA entre -24h (dépassé) et +48h
+                        .build();
+                        
+                List<IncidentHistory> hist = new java.util.ArrayList<>();
+                hist.add(IncidentHistory.builder().action("Incident déclaré").username(author.getName()).incident(inc).build());
+                
+                if (assignee != null) {
+                    hist.add(IncidentHistory.builder().action("Assigné à " + assignee.getName()).username("Système").incident(inc).build());
+                    if (!stat.equals("Assigné")) {
+                        hist.add(IncidentHistory.builder().action("Statut modifié à " + stat).username(assignee.getName()).incident(inc).build());
+                    }
+                }
+                
+                inc.setHistory(hist);
+                incidentRepository.save(inc);
+            }
+        }
     }
 
     private Permission savePermissionIfAbsent(String code, String label, String module, String description) {
