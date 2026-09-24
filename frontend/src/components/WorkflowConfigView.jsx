@@ -172,6 +172,9 @@ export function WorkflowConfigView({
     try {
       const res = await fetch('http://localhost:8081/api/workflows/deploy-flowable', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${window.keycloak?.token}`
+        },
         body: formData
       });
       const data = await res.json();

@@ -1070,8 +1070,7 @@ function App() {
         const uploadRes = await fetch(`${API_BASE}/incidents/${createdInc.incidentCode}/attachments`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'X-Mock-User': currentUser.email
+            'Authorization': `Bearer ${window.keycloak?.token || token}`
           },
           body: formData
         });
@@ -1401,20 +1400,14 @@ function App() {
     try {
       setErrorMessage('');
       const res = await fetch(`${API_BASE}/incidents/${code}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Mock-User': userContext.email
-        }
+        headers: getHeaders()
       });
       if (!res.ok) throw new Error("Impossible de charger le détail de l'incident.");
       const data = await res.json();
       setSelectedIncident(data);
 
       const wfRes = await fetch(`${API_BASE}/workflows/category/${encodeURIComponent(data.category)}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Mock-User': userContext.email
-        }
+        headers: getHeaders()
       });
       if (wfRes.ok) {
         const wfData = await wfRes.json();
@@ -1600,8 +1593,7 @@ function App() {
       const res = await fetch(`${API_BASE}/incidents/${selectedIncident.incidentCode}/attachments`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'X-Mock-User': currentUser.email
+          'Authorization': `Bearer ${window.keycloak?.token || token}`
         },
         body: formData
       });

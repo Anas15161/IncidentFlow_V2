@@ -42,6 +42,7 @@ services:
       - incidentflow-postgres-v2
     volumes:
       - ./keycloak/imports:/opt/keycloak/data/import
+      - ./keycloak/themes:/opt/keycloak/themes
     networks:
       - incidentflow-network-v2
     restart: unless-stopped

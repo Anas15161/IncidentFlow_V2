@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:flowable="http://flowable.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.flowable.org/processdef" exporter="Flowable Open Source Modeler" exporterVersion="6.8.0">
+  <process id="incidentWorkflow" name="Incident Standard Workflow V2_2" isExecutable="true">
+    <startEvent id="startEvent1" name="Création Incident" flowable:initiator="initiator" flowable:formFieldValidation="true"></startEvent>
+    <userTask id="taskNouveau" name="Nouveau" flowable:formFieldValidation="true">
+      <documentation>Incident créé, en attente d'être assigné à quelqu'un.</documentation>
+    </userTask>
+    <userTask id="taskAssigne" name="Assigné" flowable:formFieldValidation="true">
+      <documentation>Incident assigné à un technicien.</documentation>
+    </userTask>
+    <userTask id="taskEnCours" name="En cours" flowable:formFieldValidation="true">
+      <documentation>Le technicien travaille sur la résolution de l'incident.</documentation>
+    </userTask>
+    <userTask id="taskResolu" name="Résolu" flowable:formFieldValidation="true">
+      <documentation>La solution a été trouvée, en attente de vérification finale pour clôture.</documentation>
+    </userTask>
+    <endEvent id="endEvent1" name="Clôturé"></endEvent>
+    <sequenceFlow id="flow2" sourceRef="taskNouveau" targetRef="taskAssigne"></sequenceFlow>
+    <sequenceFlow id="flow3" sourceRef="taskAssigne" targetRef="taskEnCours"></sequenceFlow>
+    <sequenceFlow id="flow1" sourceRef="startEvent1" targetRef="taskNouveau"></sequenceFlow>
+    <sequenceFlow id="flow5" sourceRef="taskResolu" targetRef="endEvent1"></sequenceFlow>
+    <userTask id="sid-91C576F6-ABDA-4F56-852E-0BFB111F5711" name="En validé" flowable:formFieldValidation="true">
+      <documentation>Validation de la solution par le responsable.</documentation>
+    </userTask>
+    <sequenceFlow id="flow4" sourceRef="taskEnCours" targetRef="sid-91C576F6-ABDA-4F56-852E-0BFB111F5711"></sequenceFlow>
+    <sequenceFlow id="sid-68719C9A-4842-4A65-B5B0-41E16A216D92" sourceRef="sid-91C576F6-ABDA-4F56-852E-0BFB111F5711" targetRef="taskResolu"></sequenceFlow>
+  </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_incidentWorkflow">
+    <bpmndi:BPMNPlane bpmnElement="incidentWorkflow" id="BPMNPlane_incidentWorkflow">
+      <bpmndi:BPMNShape bpmnElement="startEvent1" id="BPMNShape_startEvent1">
+        <omgdc:Bounds height="30.0" width="30.0" x="100.0" y="200.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="taskNouveau" id="BPMNShape_taskNouveau">
+        <omgdc:Bounds height="80.0" width="100.0" x="190.0" y="175.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="taskAssigne" id="BPMNShape_taskAssigne">
+        <omgdc:Bounds height="80.0" width="100.0" x="350.0" y="175.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="taskEnCours" id="BPMNShape_taskEnCours">
+        <omgdc:Bounds height="80.0" width="100.0" x="510.0" y="175.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="taskResolu" id="BPMNShape_taskResolu">
+        <omgdc:Bounds height="80.0" width="100.0" x="670.0" y="175.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="endEvent1" id="BPMNShape_endEvent1">
+        <omgdc:Bounds height="28.0" width="28.0" x="830.0" y="201.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="sid-91C576F6-ABDA-4F56-852E-0BFB111F5711" id="BPMNShape_sid-91C576F6-ABDA-4F56-852E-0BFB111F5711">
+        <omgdc:Bounds height="80.0" width="100.0" x="585.0" y="300.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="flow1" id="BPMNEdge_flow1" flowable:sourceDockerX="15.0" flowable:sourceDockerY="15.0" flowable:targetDockerX="50.0" flowable:targetDockerY="40.0">
+        <omgdi:waypoint x="129.94999883049306" y="215.0"></omgdi:waypoint>
+        <omgdi:waypoint x="190.0" y="215.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow2" id="BPMNEdge_flow2" flowable:sourceDockerX="99.0" flowable:sourceDockerY="40.0" flowable:targetDockerX="50.0" flowable:targetDockerY="40.0">
+        <omgdi:waypoint x="289.95000000000005" y="215.0"></omgdi:waypoint>
+        <omgdi:waypoint x="350.0" y="215.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow3" id="BPMNEdge_flow3" flowable:sourceDockerX="50.0" flowable:sourceDockerY="40.0" flowable:targetDockerX="50.0" flowable:targetDockerY="40.0">
+        <omgdi:waypoint x="449.95000000000005" y="215.0"></omgdi:waypoint>
+        <omgdi:waypoint x="510.0" y="215.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow4" id="BPMNEdge_flow4" flowable:sourceDockerX="50.0" flowable:sourceDockerY="40.0" flowable:targetDockerX="1.0" flowable:targetDockerY="40.0">
+        <omgdi:waypoint x="568.3096" y="254.95000000000002"></omgdi:waypoint>
+        <omgdi:waypoint x="585.0" y="335.00959692898294"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="sid-68719C9A-4842-4A65-B5B0-41E16A216D92" id="BPMNEdge_sid-68719C9A-4842-4A65-B5B0-41E16A216D92" flowable:sourceDockerX="99.0" flowable:sourceDockerY="40.0" flowable:targetDockerX="50.0" flowable:targetDockerY="79.0">
+        <omgdi:waypoint x="684.9499999999999" y="337.6111111111111"></omgdi:waypoint>
+        <omgdi:waypoint x="719.5813953488372" y="254.95000000000002"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow5" id="BPMNEdge_flow5" flowable:sourceDockerX="50.0" flowable:sourceDockerY="40.0" flowable:targetDockerX="14.0" flowable:targetDockerY="14.0">
+        <omgdi:waypoint x="769.9499999999376" y="215.0"></omgdi:waypoint>
+        <omgdi:waypoint x="830.0" y="215.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>
