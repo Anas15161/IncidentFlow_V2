@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.List;
@@ -26,13 +27,15 @@ public class UserService {
     private final PermissionRepository permissionRepository;
     private final HttpServletRequest request;
     private final PasswordEncoder passwordEncoder;
+    private final KeycloakAdminService keycloakAdminService;
 
-    public UserService(UserRepository userRepository, RoleRepository roleRepository, PermissionRepository permissionRepository, HttpServletRequest request, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, RoleRepository roleRepository, PermissionRepository permissionRepository, HttpServletRequest request, PasswordEncoder passwordEncoder, KeycloakAdminService keycloakAdminService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.permissionRepository = permissionRepository;
         this.request = request;
         this.passwordEncoder = passwordEncoder;
+        this.keycloakAdminService = keycloakAdminService;
     }
 
     public List<User> getAllUsers() {
@@ -117,35 +120,61 @@ public class UserService {
             }
         }
 
-        // Mode dev-mock ou fallback
         String mockEmail = request.getHeader("X-Mock-User");
         if (mockEmail == null || mockEmail.trim().isEmpty()) {
-            mockEmail = "anas@netmar.com"; // Fallback par defaut
+            mockEmail = "admin@netmar.com"; 
         }
         final String finalMockEmail = mockEmail;
         return userRepository.findByEmail(finalMockEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Simulated user not found: " + finalMockEmail));
     }
 
+    @Transactional
     public User saveUser(User user) {
-        if (user.getPassword() == null || user.getPassword().isEmpty()) {
-            user.setPassword(passwordEncoder.encode("password"));
-        } else if (!user.getPassword().startsWith("$2a$")) {
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        String rawPassword = user.getPassword();
+        if (rawPassword == null || rawPassword.isEmpty()) {
+            rawPassword = "password";
         }
+        
         if (user.getName() == null && user.getFirstName() != null) {
             user.setName(user.getFirstName() + " " + (user.getLastName() != null ? user.getLastName() : ""));
         }
+        
+        try {
+            keycloakAdminService.createUser(user.getEmail(), user.getFirstName(), user.getLastName(), rawPassword, user.getRole() != null ? user.getRole().getName() : null);
+        } catch(Exception e) {
+            System.err.println("Warning: Impossible de créer l'utilisateur dans Keycloak: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        user.setPassword(passwordEncoder.encode(rawPassword));
         return userRepository.save(user);
     }
 
+    @Transactional
     public User updateUser(Long id, User details) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
+                
+        String rawPassword = null;
+        if (details.getPassword() != null && !details.getPassword().isEmpty() && !details.getPassword().startsWith("$2a$")) {
+            rawPassword = details.getPassword();
+            user.setPassword(passwordEncoder.encode(rawPassword));
+        }
+        
+        try {
+            keycloakAdminService.updateUser(user.getEmail(), details.getFirstName(), details.getLastName(), rawPassword, details.getRole() != null ? details.getRole().getName() : (user.getRole() != null ? user.getRole().getName() : null));
+        } catch(Exception e) {
+            System.err.println("Warning: Impossible de mettre à jour l'utilisateur dans Keycloak: " + e.getMessage());
+        }
+
         user.setFirstName(details.getFirstName());
         user.setLastName(details.getLastName());
         user.setName(details.getFirstName() + " " + (details.getLastName() != null ? details.getLastName() : ""));
-        user.setEmail(details.getEmail());
+        
+        // Attention : Changer l'email dans KC est complexe, on le met à jour seulement localement ici si KC échoue/n'est pas supporté.
+        user.setEmail(details.getEmail()); 
+        
         user.setTelephone(details.getTelephone());
         user.setDepartment(details.getDepartment());
         user.setPost(details.getPost());
@@ -156,15 +185,21 @@ public class UserService {
         if (details.getRole() != null) {
             user.setRole(details.getRole());
         }
-        if (details.getPassword() != null && !details.getPassword().isEmpty() && !details.getPassword().startsWith("$2a$")) {
-            user.setPassword(passwordEncoder.encode(details.getPassword()));
-        }
+        
         return userRepository.save(user);
     }
 
+    @Transactional
     public void deleteUser(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
+        
+        try {
+            keycloakAdminService.deleteUser(user.getEmail());
+        } catch(Exception e) {
+            System.err.println("Warning: Impossible de supprimer l'utilisateur dans Keycloak: " + e.getMessage());
+        }
+        
         userRepository.delete(user);
     }
 }

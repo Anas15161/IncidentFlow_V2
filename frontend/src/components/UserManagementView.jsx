@@ -1,44 +1,192 @@
 import React from 'react';
-import { Users } from 'lucide-react';
+import { Users, Shield, Search, X, Edit3, Trash2, Plus } from 'lucide-react';
 
-export function UserManagementView() {
+export function UserManagementView({
+  setShowUserCreateModal,
+  currentView,
+  setCurrentView,
+  searchUserQuery,
+  setSearchUserQuery,
+  roleUserFilter,
+  setRoleUserFilter,
+  rolesList,
+  filteredUsers,
+  setEditingUser,
+  setShowUserEditModal,
+  handleUserDelete
+}) {
   return (
     <div className="animate-fade-in" style={{ padding: '24px' }}>
-      <div className="page-header" style={{ borderBottom: 'none', marginBottom: '16px' }}>
+      <div className="page-header" style={{ marginBottom: '16px' }}>
         <div>
-          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Users className="text-primary-600" />
-            Gestion des Utilisateurs (V2 - Keycloak)
-          </h1>
-          <p className="page-subtitle" style={{ color: '#059669', fontWeight: 'bold' }}>
-            ⚡ L'Identity and Access Management (IAM) est désormais délégué à Keycloak.
-          </p>
+          <h1 className="page-title">Gestion des Utilisateurs</h1>
+          <p className="page-subtitle">Gérez les comptes, attribuez des rôles et administrez les accès (Sync Keycloak activée).</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => setShowUserCreateModal(true)}>
+          <Plus size={16} />
+          Nouvel Utilisateur
+        </button>
+      </div>
+
+      {/* Navigation sub-tabs */}
+      <div className="admin-tab-bar">
+        <button
+          className={`admin-tab-btn ${currentView === 'users' ? 'active' : ''}`}
+          onClick={() => setCurrentView('users')}
+        >
+          <Users size={16} />
+          Gestion Utilisateurs
+        </button>
+        <button
+          className={`admin-tab-btn ${currentView === 'roles' ? 'active' : ''}`}
+          onClick={() => setCurrentView('roles')}
+        >
+          <Shield size={16} />
+          Rôles & Habilitations
+        </button>
+      </div>
+
+      {/* Filters Row for Users */}
+      <div className="filter-panel-premium">
+        <div className="filter-item" style={{ flexGrow: 1, minWidth: '220px' }}>
+          <label>Rechercher un utilisateur</label>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Search size={14} style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)' }} />
+            <input
+              type="text"
+              className="filter-select"
+              placeholder="Rechercher par nom, email, département..."
+              value={searchUserQuery}
+              onChange={(e) => setSearchUserQuery(e.target.value)}
+              style={{ paddingLeft: '34px', width: '100%', height: '37px' }}
+            />
+            {searchUserQuery && (
+              <button
+                onClick={() => setSearchUserQuery('')}
+                style={{ position: 'absolute', right: '10px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="filter-item" style={{ minWidth: '180px' }}>
+          <label>Rôle</label>
+          <select className="filter-select" value={roleUserFilter} onChange={(e) => setRoleUserFilter(e.target.value)} style={{ height: '37px' }}>
+            <option value="Tous">Tous</option>
+            {rolesList.map(r => (
+              <option key={r.id} value={r.name}>{r.name}</option>
+            ))}
+          </select>
         </div>
       </div>
 
-      <div className="card" style={{ padding: '40px', textAlign: 'center', maxWidth: '800px', margin: '0 auto', border: '2px solid #3b82f6', boxShadow: '0 10px 25px rgba(59, 130, 246, 0.1)' }}>
-        <img src="https://upload.wikimedia.org/wikipedia/commons/2/29/Keycloak_Logo.png" alt="Keycloak Logo" style={{ height: '60px', marginBottom: '24px' }} />
-        <h2 style={{ fontSize: '24px', marginBottom: '16px', color: '#111827' }}>Centralisation des Identités</h2>
-        <p style={{ fontSize: '15px', color: '#4b5563', marginBottom: '32px', lineHeight: '1.6' }}>
-          Dans la V1, les utilisateurs et les mots de passe étaient stockés manuellement dans la base de données de l'application. 
-          Pour répondre aux exigences de sécurité d'Entreprise, IncidentFlow ne gère plus les comptes locaux. 
-          Toute la création d'utilisateurs, la réinitialisation de mots de passe, et les politiques de sécurité sont gérées dans <strong>Keycloak</strong>.
-        </p>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
-          <a 
-            href="http://localhost:8181/admin" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="btn btn-primary"
-            style={{ padding: '16px 32px', fontSize: '16px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: '#3b82f6', borderColor: '#3b82f6' }}
-          >
-            Ouvrir la Console Keycloak (IAM)
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-          </a>
-          <span style={{ fontSize: '13px', color: '#6b7280' }}>
-            Identifiants Administrateur : <strong>admin</strong> / <strong>admin_secure_keycloak_pass</strong> (Realm: master ou incidentflow-realm)
+      {/* User results summary banner */}
+      <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center', padding: '0 4px' }}>
+        <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)' }}>
+          Résultats : <strong style={{ color: 'var(--text-main)' }}>{filteredUsers.length} utilisateur{filteredUsers.length > 1 ? 's' : ''} trouvé{filteredUsers.length > 1 ? 's' : ''}</strong>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
+          <span className="kpi-badge kpi-badge-resolu" style={{ marginTop: 0, padding: '2px 10px', fontSize: '9.5px' }}>
+            {filteredUsers.filter(u => u.active).length} Actif(s)
           </span>
+          <span className="kpi-badge kpi-badge-nouveau" style={{ marginTop: 0, padding: '2px 10px', fontSize: '9.5px' }}>
+            {filteredUsers.filter(u => !u.active).length} Inactif(s)
+          </span>
+        </div>
+      </div>
+
+      {/* Users List Card */}
+      <div className="dashboard-card" style={{ padding: '20px' }}>
+        <div className="datagrid-container">
+          <table className="datagrid">
+            <thead>
+              <tr>
+                <th>Nom</th>
+                <th>Email</th>
+                <th>Téléphone</th>
+                <th>Département</th>
+                <th>Poste</th>
+                <th>Rôle</th>
+                <th>Statut</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUsers.map(u => {
+                const roleName = u.role ? u.role.name : 'Aucun';
+                const roleClass = roleName.toLowerCase().includes('admin')
+                  ? 'role-admin'
+                  : (roleName.toLowerCase().includes('support') ? 'role-support' : 'role-user');
+
+                return (
+                  <tr key={u.id} className="hoverable">
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div className={`avatar-circle ${u.avatarColor || 'bg-gray-500'}`} style={{ width: '28px', height: '28px', fontSize: '11px' }}>
+                          {u.name ? u.name.split(' ').map(n => n[0]).join('') : 'U'}
+                        </div>
+                        <span style={{ fontWeight: '700' }}>{u.name}</span>
+                      </div>
+                    </td>
+                    <td>{u.email}</td>
+                    <td>{u.telephone || '-'}</td>
+                    <td>{u.department || '-'}</td>
+                    <td>{u.post || '-'}</td>
+                    <td>
+                      <span className={`role-badge-pill ${roleClass}`}>
+                        {roleName}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`badge ${u.active ? 'badge-resolu' : 'badge-normal'}`}>
+                        {u.active ? 'Actif' : 'Inactif'}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '6px' }}>
+                        <button
+                          className="icon-btn btn-secondary"
+                          onClick={() => {
+                            setEditingUser({
+                              id: u.id,
+                              firstName: u.firstName || (u.name ? u.name.split(' ')[0] : '') || '',
+                              lastName: u.lastName || (u.name ? u.name.split(' ')[1] : '') || '',
+                              email: u.email,
+                              telephone: u.telephone || '',
+                              department: u.department || '',
+                              post: u.post || '',
+                              roleId: u.role ? String(u.role.id) : '3',
+                              active: u.active
+                            });
+                            setShowUserEditModal(true);
+                          }}
+                          style={{ width: '28px', height: '28px', border: 'none' }}
+                          title="Modifier"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                        <button
+                          className="icon-btn btn-secondary"
+                          onClick={() => handleUserDelete(u.id, u.name)}
+                          style={{ width: '28px', height: '28px', color: '#ef4444', border: 'none' }}
+                          title="Supprimer"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filteredUsers.length === 0 && (
+                <tr>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>Aucun utilisateur trouvé.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

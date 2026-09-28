@@ -14,10 +14,12 @@ import {
 } from 'lucide-react';
 
 export function IncidentDetailView({
+
+
   selectedIncident,
   setSelectedIncidentCode,
   getCategoryIcon,
-  tickerTime,
+  
   hasPermission,
   handleOpenEditModal,
   handleDeleteIncident,
@@ -65,6 +67,12 @@ export function IncidentDetailView({
   handleDropUpload,
   handleFileUpload
 }) {
+  const [tickerTime, setTickerTime] = React.useState(Date.now());
+  React.useEffect(() => {
+    const interval = setInterval(() => setTickerTime(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   if (!selectedIncident) return null;
 
   const currentWf = activeWorkflow || (workflows && workflows.length > 0 ? workflows[0] : selectedIncidentWorkflow);

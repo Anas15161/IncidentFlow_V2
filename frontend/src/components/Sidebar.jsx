@@ -18,11 +18,26 @@ export function Sidebar({
   setCurrentView,
   setSelectedIncidentCode,
   incidents,
-  sessionTimeLeft,
+  sessionDuration,
   currentUser,
   getRoleName,
   handleLogout
 }) {
+  const [timeLeft, setTimeLeft] = React.useState(sessionDuration || 600);
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          handleLogout();
+          alert("Votre session a expiré.");
+          return sessionDuration || 600;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [sessionDuration, handleLogout]);
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -132,7 +147,7 @@ export function Sidebar({
 
       {/* Session Time Out banner */}
       <div style={{ padding: '12px 24px', backgroundColor: 'rgba(255,255,255,0.03)', borderTop: '1px solid rgba(255,255,255,0.05)', fontSize: '10px', color: '#94a3b8' }}>
-        <span>Session expire dans: <strong>{Math.floor(sessionTimeLeft / 60)}m {sessionTimeLeft % 60}s</strong></span>
+        <span>Session expire dans: <strong>{Math.floor(timeLeft / 60)}m {timeLeft % 60}s</strong></span>
       </div>
 
       <div className="sidebar-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

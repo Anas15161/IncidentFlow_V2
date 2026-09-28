@@ -76,9 +76,7 @@ function App() {
   const [loginError, setLoginError] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
-  const [sessionTimeLeft, setSessionTimeLeft] = useState(() => {
-    return parseInt(localStorage.getItem('sessionDuration') || '600');
-  });
+  const sessionTimeLeft = 600;
 
   // Profile & Settings Dropdown / Modals states
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -148,7 +146,7 @@ function App() {
   const [editingAttachmentId, setEditingAttachmentId] = useState(null);
   const [editingAttachmentName, setEditingAttachmentName] = useState("");
   const [commentTab, setCommentTab] = useState('write');
-  const [tickerTime, setTickerTime] = useState(Date.now());
+  
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentContent, setEditingCommentContent] = useState("");
   const [editingCommentTab, setEditingCommentTab] = useState('write');
@@ -437,91 +435,6 @@ function App() {
     }
   }, []);
 
-  // Session timer auto-logout (US-AUTH-001)
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    const interval = setInterval(() => {
-      setSessionTimeLeft(prev => {
-        if (prev <= 1) {
-          handleLogout();
-          alert("Votre session a expiré. Déconnexion automatique.");
-          return sessionDuration;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isAuthenticated, sessionDuration]);
-
-  // Close profile dropdown & notifications when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showProfileDropdown && !event.target.closest('.user-profile-dropdown-container')) {
-        setShowProfileDropdown(false);
-      }
-      if (showNotifications && !event.target.closest('.notif-bell-container')) {
-        setShowNotifications(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showProfileDropdown, showNotifications]);
-
-  // Load and cache attachment preview as a Blob URL (fixes localhost / auth issues)
-  useEffect(() => {
-    if (!previewFile) {
-      if (previewBlobUrl) {
-        URL.revokeObjectURL(previewBlobUrl);
-        setPreviewBlobUrl(null);
-      }
-      setPreviewError(null);
-      return;
-    }
-
-    let active = true;
-    const fetchPreview = async () => {
-      setPreviewLoading(true);
-      setPreviewError(null);
-      try {
-        const res = await fetch(`${API_BASE}/incidents/attachments/${previewFile.id}`, {
-          headers: getHeaders()
-        });
-        if (!res.ok) {
-          throw new Error(`Impossible de charger l'aperçu (${res.status})`);
-        }
-        const blob = await res.blob();
-        if (active) {
-          const url = URL.createObjectURL(blob);
-          setPreviewBlobUrl(url);
-        }
-      } catch (err) {
-        if (active) {
-          setPreviewError(err.message || "Erreur de chargement");
-        }
-      } finally {
-        if (active) {
-          setPreviewLoading(false);
-        }
-      }
-    };
-
-    fetchPreview();
-
-    return () => {
-      active = false;
-    };
-  }, [previewFile]);
-
-  // Global ticking clock for active count downs (SLA etc.) to prevent multiple intervals
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTickerTime(Date.now());
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
 
 
   // Open Edit Profile modal and set form fields
@@ -597,7 +510,7 @@ function App() {
     e.preventDefault();
     const newDur = parseInt(appSettingsForm.sessionDuration);
     setSessionDuration(newDur);
-    setSessionTimeLeft(newDur);
+    console.log(newDur);
     setEnableNotifications(appSettingsForm.enableNotifications);
     setNotificationSound(appSettingsForm.notificationSound);
     setMaintenanceMode(appSettingsForm.maintenanceMode);
@@ -813,7 +726,7 @@ function App() {
       setToken(data.token);
       setCurrentUser(data.user);
       setIsAuthenticated(true);
-      setSessionTimeLeft(sessionDuration);
+      console.log(sessionDuration);
       setSuccessMessage("Connexion réussie !");
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
@@ -1886,7 +1799,7 @@ function App() {
         setCurrentView={setCurrentView}
         setSelectedIncidentCode={setSelectedIncidentCode}
         incidents={incidents}
-        sessionTimeLeft={sessionTimeLeft}
+        sessionDuration={sessionDuration}
         currentUser={currentUser}
         getRoleName={getRoleName}
         handleLogout={handleLogout}
@@ -1943,7 +1856,7 @@ function App() {
                 selectedIncident={selectedIncident}
                 setSelectedIncidentCode={setSelectedIncidentCode}
                 getCategoryIcon={getCategoryIcon}
-                tickerTime={tickerTime}
+                
                 hasPermission={hasPermission}
                 handleOpenEditModal={handleOpenEditModal}
                 handleDeleteIncident={handleDeleteIncident}
