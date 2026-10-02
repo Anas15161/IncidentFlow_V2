@@ -1,109 +1,720 @@
-\documentclass[11pt,a4paper]{article}
+% =====================================================================
+%  IncidentFlow V3 — Technical Architecture & Automation
+%  Compilation : pdflatex (2 passes) ou latexmk -pdf
+%  Logo optionnel : placer logo_02.png à côté de ce fichier
+% =====================================================================
+\documentclass[10.5pt,a4paper]{article}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[french]{babel}
 \usepackage{lmodern}
+\usepackage[scaled=.95]{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage[a4paper,left=2.3cm,right=2.3cm,top=2.9cm,bottom=2.6cm,headheight=15pt]{geometry}
 \usepackage{graphicx}
-\usepackage{hyperref}
-\usepackage{geometry}
-\usepackage{xcolor}
-\usepackage{titlesec}
-\usepackage{enumitem}
+\usepackage[table]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc}
+\usepackage[skins,breakable]{tcolorbox}
+\usepackage{titlesec,enumitem,booktabs,tabularx,array,fancyhdr,lastpage}
+\usepackage{microtype}
 
-\geometry{margin=2.5cm}
+% ---------------------------------------------------------------------
+%  Design tokens (mêmes teintes que la page web)
+% ---------------------------------------------------------------------
+% Pages claires (impression / lecture)
+\definecolor{ink}{HTML}{1A1D23}
+\definecolor{muted}{HTML}{5B6472}
+\definecolor{rulec}{HTML}{D5D9E0}
+\definecolor{surf}{HTML}{F6F7F9}
+\definecolor{surfb}{HTML}{ECEEF2}
+\definecolor{prim}{HTML}{3D6FD9}   % système
+\definecolor{integ}{HTML}{7B62D9}  % intégration
+\definecolor{warn}{HTML}{B9791A}   % changements / alertes
+\definecolor{succ}{HTML}{2A9D76}   % succès
+\definecolor{codec}{HTML}{2B3A55}
+% % Couverture sombre
+\definecolor{cbg}{HTML}{0B0D10}
+\definecolor{csurf}{HTML}{12151A}
+\definecolor{crule}{HTML}{343C49}
+\definecolor{cfg}{HTML}{E8EAED}
+\definecolor{cmuted}{HTML}{98A1B0}
+\definecolor{lprim}{HTML}{5B8DEF}
+\definecolor{linteg}{HTML}{9B82F0}
+\definecolor{lwarn}{HTML}{E0A03A}
+\definecolor{lsucc}{HTML}{3FB68B}
+\colorlet{acc}{prim}
 
-% Couleurs du thème
-\definecolor{primary}{RGB}{77, 124, 254} % Bleu
-\definecolor{secondary}{RGB}{45, 212, 167} % Emeraude
+% ---------------------------------------------------------------------
+%  Typographie et structure
+% ---------------------------------------------------------------------
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{.55em}
+\linespread{1.08}
+\color{ink}
 
-% Formatage des titres
-\titleformat{\section}{\color{primary}\Large\bfseries}{\thesection}{1em}{}[\color{primary}\titlerule]
-\titleformat{\subsection}{\color{secondary}\large\bfseries}{\thesubsection}{1em}{}
+\newcommand{\code}[1]{\texttt{\textcolor{codec}{#1}}}
+\newcommand{\bul}{\raisebox{.2em}{\rule{3.4pt}{3.4pt}}}
+\setlist[itemize]{leftmargin=1.3em,itemsep=2.5pt,topsep=3pt,parsep=0pt,label={\textcolor{acc}{\bul}}}
+\setlist[enumerate]{leftmargin=1.6em,itemsep=2pt,topsep=3pt}
 
-\title{\textbf{IncidentFlow V3 : Perspectives d'Évolution}\\ \Large Automatisation, Intégration n8n et Zero-Touch}
-\author{Rapport d'Architecture Détaillé}
-\date{\today}
+\newcommand{\secnum}{\ifnum\value{section}<10 0\fi\arabic{section}}
+\titleformat{\section}
+  {\Large\bfseries\color{ink}}
+  {\textcolor{acc}{\ttfamily\normalsize\secnum}\hspace{.7em}\textcolor{rulec}{\textbar}}{.7em}{}
+  [\vspace{-2pt}{\color{rulec}\titlerule}]
+\titleformat{name=\section,numberless}
+  {\Large\bfseries\color{ink}}{}{0pt}{}
+  [\vspace{-2pt}{\color{rulec}\titlerule}]
+\titleformat{\subsection}
+  {\large\bfseries\color{ink}}{\textcolor{acc}{\ttfamily\small\thesubsection}}{.7em}{}
+\titlespacing*{\section}{0pt}{26pt}{10pt}
+\titlespacing*{\subsection}{0pt}{14pt}{4pt}
+
+% En-têtes / pieds de page
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{.4pt}
+\renewcommand{\footrulewidth}{.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{rulec}\leaders\hrule height \headrulewidth\hfill}}
+\renewcommand{\footrule}{\hbox to\headwidth{\color{rulec}\leaders\hrule height \footrulewidth\hfill}}
+\fancyhead[L]{\small\textcolor{muted}{\textbf{IncidentFlow}\,V3 \textbar{} Technical Architecture \& Automation}}
+\fancyhead[R]{\small\textcolor{muted}{\rightmark}}
+\fancyfoot[L]{\footnotesize\textcolor{muted}{Presented by Anas Haddou \textbar{} École Marocaine d'Ingénierie}}
+\fancyfoot[R]{\footnotesize\textcolor{muted}{\ttfamily\thepage/\pageref{LastPage}}}
+\renewcommand{\sectionmark}[1]{\markright{#1}}
+
+% ---------------------------------------------------------------------
+%  Composants
+% ---------------------------------------------------------------------
+% Carte : \begin{card}{couleur}{titre}
+\newtcolorbox{card}[2]{enhanced,breakable,colback=surf,colframe=rulec,boxrule=.5pt,arc=3pt,
+  left=11pt,right=10pt,top=7pt,bottom=7pt,borderline west={2.4pt}{0pt}{#1},
+  title={\textcolor{#1}{\rule{5pt}{5pt}}\hspace{.5em}#2},coltitle=ink,colbacktitle=surfb,
+  fonttitle=\bfseries\small,toptitle=3pt,bottomtitle=3pt,before skip=9pt,after skip=9pt}
+
+% Encart de résultat
+\newtcolorbox{callout}[2]{enhanced,breakable,colback=#1!6,colframe=#1!45,boxrule=.5pt,arc=3pt,
+  left=10pt,right=10pt,top=6pt,bottom=6pt,
+  title={#2},coltitle=#1!85!black,colbacktitle=#1!12,fonttitle=\bfseries\small,toptitle=3pt,bottomtitle=3pt}
+
+% Cadre de figure
+\newtcolorbox{figbox}[1]{enhanced,colback=surf,colframe=rulec,boxrule=.5pt,arc=3pt,halign=center,
+  title={\ttfamily\footnotesize #1},coltitle=muted,colbacktitle=surfb,toptitle=3pt,bottomtitle=3pt,
+  before skip=10pt,after skip=10pt,left=6pt,right=6pt,top=10pt,bottom=8pt}
+\newcommand{\legend}[1]{\par\vspace{5pt}{\footnotesize\color{muted}#1}}
+\newcommand{\key}[2]{\textcolor{#1}{\rule{5pt}{5pt}}\,#2\hspace{1.2em}}
+
+% Bandeau « Contexte → Problème → Solution → Résultat »
+\newcommand{\cell}[2]{\vspace{5pt}{\color{acc}\ttfamily\scriptsize #1}\par\vspace{2pt}{\color{muted}\footnotesize #2}\vspace{5pt}}
+\newcolumntype{S}{@{\hspace{9pt}}>{\raggedright\arraybackslash}X@{\hspace{9pt}}}
+\newcommand{\storybox}[1]{\begin{tcolorbox}[enhanced,colback=surf,colframe=rulec,boxrule=.5pt,arc=3pt,
+  left=0pt,right=0pt,top=0pt,bottom=0pt,boxsep=0pt,before skip=8pt,after skip=10pt]#1\end{tcolorbox}}
+\newcommand{\storythree}[6]{\storybox{\begin{tabularx}{\linewidth}{S!{\color{rulec}\vrule}S!{\color{rulec}\vrule}S}
+  \cell{#1}{#2}&\cell{#3}{#4}&\cell{#5}{#6}\end{tabularx}}}
+\newcommand{\storyfour}[8]{\storybox{\begin{tabularx}{\linewidth}{S!{\color{rulec}\vrule}S!{\color{rulec}\vrule}S!{\color{rulec}\vrule}S}
+  \cell{#1}{#2}&\cell{#3}{#4}&\cell{#5}{#6}&\cell{#7}{#8}\end{tabularx}}}
+
+% ---------------------------------------------------------------------
+%  Pastilles de couverture claire
+% ---------------------------------------------------------------------
+\newcommand{\coverpill}[2]{%
+  \tikz[baseline=(n.base)]
+  \node[
+    draw=coverrule,
+    fill=white,
+    rounded corners=2pt,
+    inner xsep=6pt,
+    inner ysep=3.5pt,
+    font=\ttfamily\scriptsize,
+    text=covermuted
+  ](n){
+    \textcolor{#1}{\rule{4pt}{4pt}}\,
+    #2
+  };
+}
+
+\newcommand{\coverstep}[1]{%
+  \tikz[baseline=(n.base)]
+  \node[
+    draw=coverrule,
+    fill=white,
+    rounded corners=2pt,
+    inner xsep=6pt,
+    inner ysep=3.5pt,
+    font=\ttfamily\scriptsize,
+    text=coverink
+  ](n){#1};
+}
+% Styles TikZ des figures
+\tikzset{
+  arch/.style={draw=rulec!70!muted,fill=white,rounded corners=2pt,minimum width=9.8cm,minimum height=9mm,
+    inner xsep=12pt,inner ysep=5pt,text width=8.8cm,
+    path picture={\fill[#1] (path picture bounding box.south west) rectangle ([xshift=2.6pt]path picture bounding box.north west);}},
+  fan/.style={draw=rulec!70!muted,fill=white,rounded corners=2pt,minimum width=4.5cm,minimum height=16mm,
+    inner sep=7pt,text width=4.0cm,
+    path picture={\fill[#1] (path picture bounding box.north west) rectangle ([yshift=-2.6pt]path picture bounding box.north east);}},
+  flow/.style={-{Stealth[length=5pt]},draw=muted,line width=.6pt},
+  back/.style={-{Stealth[length=5pt]},draw=muted,line width=.6pt,dashed},
+  lbl/.style={font=\ttfamily\tiny,text=muted,fill=surf,inner sep=1.5pt},
+  bpmn/.style={draw=rulec!60!muted,fill=white,rounded corners=3pt,minimum height=9mm,inner sep=5pt,
+    align=center,font=\footnotesize,text width=3.4cm},
+  gate/.style={draw=rulec!60!muted,fill=white,diamond,aspect=2.4,inner sep=1pt,align=center,font=\scriptsize,text width=2.2cm},
+  ent/.style={draw=rulec!70!muted,fill=white,inner sep=0pt,anchor=north}
+}
+
+\usepackage[colorlinks=true,linkcolor=prim,urlcolor=prim,pdftitle={IncidentFlow V3 — Technical Architecture \& Automation},
+  pdfauthor={Anas Haddou},pdfsubject={Hyper-automatisation, n8n, BPMN, Zero-Touch}]{hyperref}
 
 \begin{document}
+% ---------------------------------------------------------------------
+%  Couverture claire
+% ---------------------------------------------------------------------
+\definecolor{coverbg}{HTML}{FAFBFC}
+\definecolor{coverink}{HTML}{1A1D23}
+\definecolor{covermuted}{HTML}{697386}
+\definecolor{coverrule}{HTML}{D9DEE7}
+\definecolor{accentyellow}{HTML}{F5A524}
+% =====================================================================
+%  COUVERTURE — VERSION CLAIRE
+% =====================================================================
+\thispagestyle{empty}
+\null
 
-\maketitle
+\begin{tikzpicture}[remember picture,overlay]
 
-\begin{abstract}
+  % ---------------------------------------------------------------
+  % Fond clair
+  % ---------------------------------------------------------------
+  \fill[coverbg]
+    (current page.south west)
+    rectangle
+    (current page.north east);
+
+  % ---------------------------------------------------------------
+  % Grille technique très discrète
+  % ---------------------------------------------------------------
+  \draw[
+    step=8mm,
+    coverrule,
+    line width=.2pt,
+    opacity=.20
+  ]
+    (current page.south west)
+    grid
+    (current page.north east);
+
+  % ---------------------------------------------------------------
+  % Cadre bleu et coins jaunes (Ronds)
+  % ---------------------------------------------------------------
+  \draw[prim, line width=3pt, rounded corners=15pt] 
+    ($(current page.south west)+(1.2cm,1.2cm)$) 
+    rectangle 
+    ($(current page.north east)+(-1.2cm,-1.2cm)$);
+    
+  \fill[accentyellow] ($(current page.south west)+(1.2cm,1.2cm)$) circle (1.2cm);
+  \fill[accentyellow] ($(current page.south east)+(-1.2cm,1.2cm)$) circle (1.2cm);
+  \fill[accentyellow] ($(current page.north west)+(1.2cm,-1.2cm)$) circle (1.2cm);
+  \fill[accentyellow] ($(current page.north east)+(-1.2cm,-1.2cm)$) circle (1.2cm);
+
+  % ---------------------------------------------------------------
+  % Barre verticale d'accent
+  % ---------------------------------------------------------------
+  \fill[prim]
+    ($(current page.north west)+(2.3cm,-3.3cm)$)
+    rectangle
+    ($(current page.north west)+(2.38cm,-10.7cm)$);
+
+  % ---------------------------------------------------------------
+  % Badge supérieur
+  % ---------------------------------------------------------------
+  \node[
+    anchor=north west,
+    draw=coverrule,
+    fill=white,
+    rounded corners=2pt,
+    inner xsep=9pt,
+    inner ysep=5pt,
+    font=\ttfamily\scriptsize,
+    text=covermuted
+  ]
+    at ($(current page.north west)+(2.8cm,-3.3cm)$)
+    {
+      \textcolor{prim}{\rule{5pt}{5pt}}
+      \hspace{.5em}
+      ARCHITECTURE TECHNIQUE
+      \textbar{}
+      V3 EN CONCEPTION
+    };
+
+  % ---------------------------------------------------------------
+  % Titre principal
+  % ---------------------------------------------------------------
+  \node[
+    anchor=north west,
+    text=coverink,
+    font=\fontsize{43}{47}\selectfont\bfseries,
+    inner sep=0pt
+  ]
+    at ($(current page.north west)+(2.8cm,-5.0cm)$)
+    {
+      IncidentFlow
+      \hspace{.25em}
+      \tikz[
+        baseline=(v.base)
+      ]
+      \node[
+        draw=warn,
+        text=warn,
+        fill=warn!7,
+        font=\ttfamily\large\mdseries,
+        inner xsep=7pt,
+        inner ysep=4pt,
+        rounded corners=2pt
+      ](v){V3};
+    };
+
+  % ---------------------------------------------------------------
+  % Sous-titre
+  % ---------------------------------------------------------------
+  \node[
+    anchor=north west,
+    text=covermuted,
+    font=\fontsize{18}{22}\selectfont,
+    inner sep=0pt
+  ]
+    at ($(current page.north west)+(2.8cm,-7.1cm)$)
+    {
+      Hyper-automatisation avec n8n
+    };
+
+  % ---------------------------------------------------------------
+  % Description
+  % ---------------------------------------------------------------
+  \node[
+    anchor=north west,
+    text=covermuted,
+    text width=12.5cm,
+    font=\normalsize,
+    inner sep=0pt,
+    align=left
+  ]
+    at ($(current page.north west)+(2.8cm,-8.4cm)$)
+    {
+      Passer d'une orchestration manuelle à un système
+      «\,Zero-Touch\,» : Spring Boot et Flowable pilotent
+      le processus BPMN, tandis que n8n exécute les
+      intégrations via Webhooks, Service Tasks et APIs.
+    };
+
+  % ---------------------------------------------------------------
+  % Pipeline technologique
+  % ---------------------------------------------------------------
+  \node[
+    anchor=north west,
+    text width=15cm,
+    inner sep=0pt
+  ]
+    at ($(current page.north west)+(2.8cm,-11.0cm)$)
+    {
+        \coverstep{IncidentFlow}
+      \textcolor{covermuted}{\ttfamily\scriptsize\(\rightarrow\)}
+      \step{V3}
+      \textcolor{covermuted}{\ttfamily\scriptsize\(\rightarrow\)}
+      \step{Hyper-automatisation}
+      \textcolor{covermuted}{\ttfamily\scriptsize\(\rightarrow\)}
+      \step{n8n}
+      \textcolor{covermuted}{\ttfamily\scriptsize\(\rightarrow\)}
+      \step{BPMN}
+      \textcolor{covermuted}{\ttfamily\scriptsize\(\rightarrow\)}
+      \step{Zero-Touch}
+    };
+
+  % ---------------------------------------------------------------
+  % Technologies
+  % ---------------------------------------------------------------
+  \node[
+    anchor=north west,
+    text width=13cm,
+    inner sep=0pt
+  ]
+    at ($(current page.north west)+(2.8cm,-12.25cm)$)
+    {
+      \coverpill{prim}{Spring Boot},
+      \pill{prim}{PostgreSQL}\,
+      \pill{prim}{React}\,
+      \pill{warn}{Flowable BPMN/DMN}\,
+      \pill{integ}{n8n}\,
+      \pill{integ}{Webhooks \& APIs}\,
+      \pill{succ}{Keycloak}
+    };
+
+  % ---------------------------------------------------------------
+  % Schéma architectural décoratif
+  % ---------------------------------------------------------------
+  \begin{scope}[
+    shift={($(current page.north east)+(-5.7cm,-13.0cm)$)},
+    opacity=.65
+  ]
+
+    \node[
+      draw=prim,
+      fill=prim!5,
+      rounded corners=3pt,
+      minimum width=2.7cm,
+      minimum height=8mm
+    ] (a) {};
+
+    \node[
+      draw=warn,
+      fill=warn!5,
+      rounded corners=3pt,
+      minimum width=2.7cm,
+      minimum height=8mm
+    ] (b) at (0,-1.55) {};
+
+    \node[
+      draw=integ,
+      fill=integ!5,
+      rounded corners=3pt,
+      minimum width=2.7cm,
+      minimum height=8mm
+    ] (c) at (0,-3.1) {};
+
+    \node[
+      draw=succ,
+      fill=succ!5,
+      rounded corners=3pt,
+      minimum width=2.7cm,
+      minimum height=8mm
+    ] (d) at (-3.0,-4.8) {};
+
+    \node[
+      draw=integ,
+      fill=integ!5,
+      rounded corners=3pt,
+      minimum width=2.7cm,
+      minimum height=8mm
+    ] (e) at (0,-4.8) {};
+
+    \node[
+      draw=prim,
+      fill=prim!5,
+      rounded corners=3pt,
+      minimum width=2.7cm,
+      minimum height=8mm
+    ] (f) at (3.0,-4.8) {};
+
+    \draw[
+      coverrule,
+      line width=.7pt,
+      -{Stealth[length=4pt]}
+    ]
+      (a)--(b)--(c);
+
+    \draw[
+      coverrule,
+      line width=.7pt,
+      -{Stealth[length=4pt]}
+    ]
+      (c.south)
+      --++(0,-.55)
+      -|(d);
+
+    \draw[
+      coverrule,
+      line width=.7pt,
+      -{Stealth[length=4pt]}
+    ]
+      (c.south)
+      --(e);
+
+    \draw[
+      coverrule,
+      line width=.7pt,
+      -{Stealth[length=4pt]}
+    ]
+      (c.south)
+      --++(0,-.55)
+      -|(f);
+
+  \end{scope}
+
+  % ---------------------------------------------------------------
+  % Ligne de séparation
+  % ---------------------------------------------------------------
+  \draw[
+    coverrule,
+    line width=.6pt
+  ]
+    ($(current page.south west)+(2.3cm,4.1cm)$)
+    --
+    ($(current page.south east)+(-2.3cm,4.1cm)$);
+
+  % ---------------------------------------------------------------
+  % Informations du document
+  % ---------------------------------------------------------------
+  \node[
+    anchor=north west,
+    text=coverink,
+    inner sep=0pt,
+    text width=10cm
+  ]
+    at ($(current page.south west)+(2.3cm,3.55cm)$)
+    {
+      {\large\bfseries Technical Architecture \& Automation}\\[4pt]
+      {\color{covermuted}\small
+      Rapport d'architecture détaillé
+      \textbar{}
+      \today}
+    };
+
+  % ---------------------------------------------------------------
+  % Auteur
+  % ---------------------------------------------------------------
+  \node[
+    anchor=south west,
+    text=coverink,
+    inner sep=0pt,
+    text width=9cm
+  ]
+    at ($(current page.south west)+(2.3cm,1.7cm)$)
+    {
+      {\Large \bfseries \textcolor{prim}{Réalisé par : Anas Haddou}}\\[4pt]
+      {\color{covermuted}\small
+      École Marocaine d'Ingénierie}
+    };
+
+  % ---------------------------------------------------------------
+  % Logos (EMI & Netmar)
+  % ---------------------------------------------------------------
+  
+  % Logo Netmar (Gauche)
+  \IfFileExists{netmar_logo.jpg}{
+    \node[
+      anchor=south west,
+      fill=white,
+      draw=coverrule,
+      rounded corners=3pt,
+      inner sep=5pt
+    ]
+      at ($(current page.south west)+(2.3cm,3.5cm)$)
+      {
+        \includegraphics[height=1.4cm]{netmar_logo.jpg}
+      };
+  }{}
+  
+  % Logo EMI (Droite)
+  \IfFileExists{logo_02.png}{
+    \node[
+      anchor=south east,
+      fill=white,
+      draw=coverrule,
+      rounded corners=3pt,
+      inner sep=5pt
+    ]
+      at ($(current page.south east)+(-2.3cm,3.5cm)$)
+      {
+        \includegraphics[height=1.4cm]{logo_02.png}
+      };
+  }{}
+
+\end{tikzpicture}
+
+\clearpage
+
+% =====================================================================
+%  RÉSUMÉ
+% =====================================================================
+\markright{Résumé}
+\begin{card}{prim}{Résumé}
 Ce document présente la vision architecturale pour la version 3 du système IncidentFlow. Après avoir mis en place une orchestration métier robuste via Flowable BPMN et une sécurité centralisée via Keycloak (V2), la V3 se concentre sur l'automatisation des tâches (Zero-Touch) et l'intégration avec des systèmes tiers via l'outil d'automatisation n8n. Ce rapport détaille les scénarios d'usage, les modifications applicatives (Front/Back/BDD) et les ressources techniques nécessaires.
-\end{abstract}
+\end{card}
 
-\section{1. Scénarios d'Usage : Zero-Touch vs Fallback Humain}
+% =====================================================================
+%  ARCHITECTURE
+% =====================================================================
+\section*{Architecture globale V3}\markright{Architecture globale}
+Spring Boot et Flowable gardent la logique métier ; n8n porte toutes les intégrations externes. La figure suit le parcours d'un incident, de sa création à son exécution.
+
+\begin{figbox}{ARCHITECTURE \textbar{} parcours d'un incident}
+\begin{tikzpicture}
+  \node[arch=muted] (inc) {\textbf{Incident}\hfill{\color{muted}\ttfamily\tiny créé par un moniteur ou un utilisateur}};
+  \node[arch=prim,below=8mm of inc] (ifl) {\textbf{IncidentFlow}\hfill{\color{muted}\ttfamily\tiny React · Spring Boot}};
+  \node[arch=warn,below=8mm of ifl] (bp) {\textbf{BPMN / DMN}\hfill{\color{muted}\ttfamily\tiny Flowable · routage par catégorie}};
+  \node[arch=integ,below=8mm of bp] (n8) {\textbf{n8n}\hfill{\color{muted}\ttfamily\tiny workflows d'intégration}};
+  \node[fan=integ,below=13mm of n8] (cm) {{\color{muted}\ttfamily\tiny Webhooks}\\\textbf{Communication}\\{\color{muted}\ttfamily\tiny Slack · Teams}};
+  \node[fan=integ,left=4mm of cm] (it) {{\color{muted}\ttfamily\tiny API POST}\\\textbf{ITSM}\\{\color{muted}\ttfamily\tiny Jira · ServiceNow}};
+  \node[fan=succ,right=4mm of cm] (inf) {{\color{muted}\ttfamily\tiny SSH / Scripts}\\\textbf{Infrastructure}\\{\color{muted}\ttfamily\tiny AWS · SSH · Ansible}};
+  \draw[flow] (inc)--node[lbl,right]{API}(ifl);
+  \draw[flow] (ifl)--node[lbl,right]{Service}(bp);
+  \draw[flow] (bp)--node[lbl,right]{JSON Webhook}(n8);
+  \draw[flow] (n8.south)--++(0,-4.5mm)-|(it.north);
+  \draw[flow] (n8.south)--(cm.north);
+  \draw[flow] (n8.south)--++(0,-4.5mm)-|(inf.north);
+  \draw[back] (n8.east)--++(9mm,0)|-node[lbl,pos=.25,right]{Statut terminé}(ifl.east);
+\end{tikzpicture}
+\legend{\key{prim}{Système}\key{warn}{Processus}\key{integ}{Intégration}\key{succ}{Infrastructure}\\ Transverses : PostgreSQL (persistance), Keycloak (authentification). Trait pointillé : retour n8n $\rightarrow$ Spring Boot.}
+\end{figbox}
+
+% =====================================================================
+%  1. SCÉNARIOS
+% =====================================================================
+\colorlet{acc}{prim}
+\section{Scénarios d'usage : Zero-Touch vs fallback humain}
 L'automatisation intelligente ne remplace pas l'humain, elle agit comme un filtre puissant pour ne lui laisser que les tâches complexes ou physiques.
 
-\subsection{Scénario A : 100\% Automatisé (Zero-Touch)}
-\textbf{Cas d'usage} : Un serveur web devient soudainement inaccessible.
+\storyfour{Contexte}{Un outil de supervision (ex : Zabbix) crée l'incident via l'API Spring Boot.}
+  {Problème}{Tous les incidents ne sont pas automatisables : action physique, validation managériale, API prestataire en échec.}
+  {Solution}{Le moteur DMN route vers une \code{ServiceTask} n8n ou vers une \code{UserTask}.}
+  {Résultat}{Cas technique : résolution sans intervention humaine.}
+
+\subsection{Scénario A : 100\,\% automatisé (Zero-Touch)}
+\textbf{Cas d'usage} : un serveur web devient soudainement inaccessible.
 \begin{itemize}
-    \item L'outil de supervision (ex: Zabbix) crée l'incident via notre API Spring Boot.
-    \item Le moteur de règles DMN (Flowable) identifie un problème technique critique.
-    \item Une \texttt{ServiceTask} transmet le payload à \textbf{n8n}.
-    \item n8n exécute un script distant (SSH / Ansible) pour redémarrer le service, et notifie le canal Slack de l'équipe d'astreinte.
-    \item Si le serveur répond à nouveau, n8n clôture l'incident dans notre base de données.
-    \item \textit{Temps de résolution : 2 secondes, sans aucune intervention humaine.}
+  \item L'outil de supervision (ex : Zabbix) crée l'incident via notre API Spring Boot.
+  \item Le moteur de règles DMN (Flowable) identifie un problème technique critique.
+  \item Une \code{ServiceTask} transmet le payload à \textbf{n8n}.
+  \item n8n exécute un script distant (SSH / Ansible) pour redémarrer le service, et notifie le canal Slack de l'équipe d'astreinte.
+  \item Si le serveur répond à nouveau, n8n clôture l'incident dans notre base de données.
+  \item \textit{Temps de résolution : 2 secondes, sans aucune intervention humaine.}
 \end{itemize}
 
-\subsection{Scénario B : L'Exception Humaine (Fallback)}
-\textbf{Cas d'usage} : Une imprimante est cassée, ou un script d'auto-remédiation a échoué (Timeout API).
+\subsection{Scénario B : l'exception humaine (fallback)}
+\textbf{Cas d'usage} : une imprimante est cassée, ou un script d'auto-remédiation a échoué (timeout API).
 \begin{itemize}
-    \item Le système détecte qu'une action physique ou une validation managériale est requise.
-    \item Le processus BPMN quitte la boucle d'automatisation.
-    \item Il génère automatiquement une \texttt{UserTask} assignée au bon technicien (via Keycloak) pour procéder à une réparation manuelle.
+  \item Le système détecte qu'une action physique ou une validation managériale est requise.
+  \item Le processus BPMN quitte la boucle d'automatisation.
+  \item Il génère automatiquement une \code{UserTask} assignée au bon technicien (via Keycloak) pour procéder à une réparation manuelle.
 \end{itemize}
 
-\section{2. Chantiers Techniques : Code et Base de Données}
+\begin{figbox}{ARBRE DE DÉCISION BPMN}
+\begin{tikzpicture}
+  \node[circle,draw=prim,fill=prim!8,font=\scriptsize,align=center,inner sep=3pt] (a) at (0,0) {Nouvel\\incident};
+  \node[gate] (b) at (0,-2.0) {Moteur DMN :\\catégorie ?};
+  \node[bpmn,draw=prim,fill=prim!8] (c) at (-3.6,-4.0) {\textbf{ServiceTask}\\Auto-remédiation n8n};
+  \node[bpmn,draw=warn,fill=warn!8] (d) at (3.6,-4.0) {\textbf{UserTask}\\Action Admin};
+  \node[gate] (e) at (-3.6,-5.9) {Succès API ?};
+  \node[circle,draw=succ,fill=succ!8,font=\scriptsize,align=center,inner sep=3pt] (f) at (-3.6,-7.7) {Résolu\\auto.};
+  \draw[flow] (a)--(b);
+  \draw[flow] (b.west)-|node[lbl,pos=.22,above]{Technique / Logiciel}(c.north);
+  \draw[flow] (b.east)-|node[lbl,pos=.22,above]{Matériel / Physique}(d.north);
+  \draw[flow] (c)--(e);
+  \draw[flow] (e)--node[lbl,right]{Oui}(f);
+  \draw[flow] (e.east)-|node[lbl,pos=.22,above]{Non (timeout / erreur)}(d.south);
+\end{tikzpicture}
+\legend{\key{prim}{Automatisé}\key{warn}{Humain}\key{succ}{Résolu}}
+\end{figbox}
 
-Pour supporter cette V3, plusieurs évolutions du code source sont planifiées :
+% =====================================================================
+%  2. CHANTIERS TECHNIQUES
+% =====================================================================
+\colorlet{acc}{warn}
+\section{Chantiers techniques : code et base de données}
+Pour supporter cette V3, plusieurs évolutions du code source sont planifiées.
 
-\subsection{Base de Données (PostgreSQL)}
-Le schéma de la table \texttt{Incident} sera enrichi avec de nouvelles métadonnées :
-\begin{itemize}[label=\textbullet]
-    \item \texttt{is\_automated (boolean)} : Flag indiquant si le ticket est géré par la machine.
-    \item \texttt{external\_ticket\_id (varchar)} : Stockage de la référence du ticket du sous-traitant (ex: JIRA-901).
-    \item Nouvelle table \texttt{N8N\_WEBHOOK\_EVENT} : Pour stocker l'historique de chaque action prise par l'IA ou les scripts externes.
+\storythree{Contexte}{La V3 ajoute des actions exécutées par des machines sur des tickets existants.}
+  {Problème}{Tracer l'historique des scripts n8n, éviter les conflits humain / machine, sécuriser les échanges.}
+  {Solution}{Nouvelles colonnes, \code{WebhookController}, API Keys, dashboard et mode lecture seule.}
+
+\begin{card}{warn}{Base de données (PostgreSQL)}
+Le schéma de la table \code{Incident} sera enrichi avec de nouvelles métadonnées :
+\begin{itemize}
+  \item \code{is\_automated (boolean)} : flag indiquant si le ticket est géré par la machine.
+  \item \code{external\_ticket\_id (varchar)} : référence du ticket du sous-traitant (ex : JIRA-901).
+  \item \code{remediation\_logs (text)} : historique des scripts n8n exécutés.
+  \item Nouvelle table \code{N8N\_WEBHOOK\_EVENT} : historique de chaque action prise par l'IA ou les scripts externes.
 \end{itemize}
+\end{card}
 
-\subsection{Backend (Spring Boot \& Flowable)}
-\begin{itemize}[label=\textbullet]
-    \item \textbf{Moteur DMN} : Activation du moteur de règles Flowable pour déduire la criticité.
-    \item \textbf{Nouveaux Controllers REST} : Développement d'un \texttt{WebhookController.java} protégé par API Keys pour recevoir les retours asynchrones de n8n.
+\begin{card}{prim}{Backend (Spring Boot \& Flowable)}
+\begin{itemize}
+  \item \textbf{Moteur DMN} : activation du moteur de règles Flowable pour déduire la criticité.
+  \item \textbf{Nouveaux Controllers REST} : développement d'un \code{WebhookController.java} protégé par API Keys pour recevoir les retours asynchrones de n8n, sans passer par l'interface de login React.
 \end{itemize}
+\end{card}
 
-\subsection{Frontend (React)}
-\begin{itemize}[label=\textbullet]
-    \item \textbf{Nouveau Dashboard de Supervision} : Une vue dédiée affichant en temps réel les incidents en cours d'auto-remédiation.
-    \item \textbf{Verrouillage} : Désactivation du bouton "Traiter" sur l'UI si \texttt{is\_automated=true} afin d'éviter qu'un humain n'interfère avec le script.
+\begin{card}{prim}{Frontend (React)}
+\begin{itemize}
+  \item \textbf{Nouveau dashboard de supervision} : une vue dédiée affichant en temps réel les incidents en cours d'auto-remédiation.
+  \item \textbf{Verrouillage} : désactivation du bouton «\,Traiter\,» sur l'UI si \code{is\_automated=true}, afin d'éviter qu'un humain n'interfère avec le script.
 \end{itemize}
+\end{card}
 
-\section{3. Écosystème, Ressources et Intégrations API}
+\begin{figbox}{MISE À JOUR DE LA BASE DE DONNÉES}
+\begin{tikzpicture}[font=\footnotesize]
+  \node[ent] (i) at (-3.6,0) {\begin{tabular}{@{\hspace{8pt}}l@{\hspace{10pt}}l@{\hspace{8pt}}}
+    \multicolumn{2}{@{}l@{}}{\cellcolor{warn!14}\rule{0pt}{14pt}\hspace{8pt}\textbf{INCIDENT}\hspace{4.6cm}}\\[2pt]
+    \code{id} \textcolor{muted}{\tiny PK} & \textcolor{muted}{uuid}\\
+    \code{title} & \textcolor{muted}{string}\\
+    \code{status} & \textcolor{muted}{string}\\
+    \textcolor{warn}{\code{is\_automated}} & \textcolor{muted}{boolean}\\
+    \textcolor{warn}{\code{external\_ticket\_id}} & \textcolor{muted}{string}\\
+    \textcolor{warn}{\code{remediation\_logs}} & \textcolor{muted}{text}\\[3pt]
+  \end{tabular}};
+  \node[ent] (w) at (3.7,0) {\begin{tabular}{@{\hspace{8pt}}l@{\hspace{10pt}}l@{\hspace{8pt}}}
+    \multicolumn{2}{@{}l@{}}{\cellcolor{integ!14}\rule{0pt}{14pt}\hspace{8pt}\textbf{N8N\_WEBHOOK\_EVENT}\hspace{1.8cm}}\\[2pt]
+    \code{id} \textcolor{muted}{\tiny PK} & \textcolor{muted}{uuid}\\
+    \code{incident\_id} \textcolor{muted}{\tiny FK} & \textcolor{muted}{uuid}\\
+    \code{event\_type} & \textcolor{muted}{string}\\
+    \code{received\_at} & \textcolor{muted}{timestamp}\\[3pt]
+  \end{tabular}};
+  \draw[flow,{Stealth[length=0pt]}-{Stealth[length=0pt]}] (-.35,-1.2)--node[lbl,above]{génère}node[lbl,below,pos=.5,yshift=-2pt]{1 $\rightarrow$ 0..n}(.0,-1.2);
+\end{tikzpicture}
+\legend{\key{warn}{Colonnes ajoutées à \code{Incident}}\key{integ}{Nouvelle table}\ PK : clé primaire \textbar{} FK : clé étrangère}
+\end{figbox}
 
-L'intégration de la V3 nécessitera la mise en place de nouvelles ressources dans notre architecture Docker (ajout du conteneur \texttt{n8nio/n8n}). Voici les principales intégrations prévues :
+% =====================================================================
+%  3. ÉCOSYSTÈME
+% =====================================================================
+\colorlet{acc}{integ}
+\section{Écosystème, ressources et intégrations API}
+L'intégration de la V3 nécessitera la mise en place de nouvelles ressources dans notre architecture Docker.
 
-\begin{enumerate}
-    \item \textbf{Systèmes ITSM externes (La Société X)} :
-    \begin{itemize}
-        \item \textit{Outils} : Jira Service Management, ServiceNow.
-        \item \textit{Usage} : n8n utilisera les API REST de ces outils pour répliquer nos incidents dans le système d'information de notre prestataire et suivre leur résolution en temps réel.
-    \end{itemize}
-    \item \textbf{Communication et Alertes} :
-    \begin{itemize}
-        \item \textit{Outils} : Slack API, Microsoft Teams Webhooks, Serveur SMTP (Email).
-        \item \textit{Usage} : Notifications immédiates des administrateurs, avec possibilité d'inclure des "Boutons d'Action" directement dans le chat Slack pour approuver un redémarrage serveur.
-    \end{itemize}
-    \item \textbf{Infrastructure et Cloud} :
-    \begin{itemize}
-        \item \textit{Outils} : AWS EC2 API, SSH Node (n8n).
-        \item \textit{Usage} : Redémarrage automatique des instances Cloud, purge de cache ou de mémoire sans intervention humaine.
-    \end{itemize}
-\end{enumerate}
+\storythree{Contexte}{n8n devient la couche d'intégration entre IncidentFlow et le monde extérieur.}
+  {Problème}{Répliquer les incidents chez le sous-traitant, alerter l'astreinte, agir sur les serveurs.}
+  {Solution}{Un conteneur n8n, une file Redis et des connecteurs ITSM, chat et infrastructure.}
 
-\section{Conclusion et Avantages Stratégiques}
+\begin{card}{integ}{Infrastructures et ressources}
+Ajout du conteneur \code{n8nio/n8n} au fichier \code{docker-compose.yml}, ainsi qu'une base Redis supplémentaire pour gérer la file d'attente des webhooks.
+\end{card}
 
-En isolant toutes les communications API externes (Jira, Slack, Fournisseurs) dans n8n, nous protégeons le code source Spring Boot de l'inflation technologique. 
-La version 3 permet de transformer un simple outil de "ticketing" en une \textbf{plateforme d'hyper-automatisation ITSM} robuste. Le temps moyen de résolution (MTTR) est drastiquement réduit et l'entreprise gagne une capacité d'intégration visuelle instantanée pour de futurs partenaires.
+\subsection{Intégrations prévues}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\linewidth}{@{}>{\bfseries\color{integ}}p{3.2cm}>{\raggedright\arraybackslash}p{3.9cm}>{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{surfb}\textcolor{ink}{Famille} & \textcolor{ink}{\bfseries Outils} & \textcolor{ink}{\bfseries Usage}\\
+\midrule
+Systèmes ITSM externes (Société X) & Jira Service Management, ServiceNow & n8n utilise les API REST de ces outils pour répliquer nos incidents dans le système d'information du prestataire et suivre leur résolution en temps réel.\\
+\midrule
+Communication et alertes & Slack API, Microsoft Teams Webhooks, serveur SMTP (email) & Notifications immédiates des administrateurs, avec «\,boutons d'action\,» directement dans le chat Slack pour approuver un redémarrage serveur.\\
+\midrule
+Infrastructure et cloud & AWS EC2 API, SSH Node (n8n), Ansible & Redémarrage automatique des instances cloud, purge de cache ou de mémoire sans intervention humaine.\\
+\bottomrule
+\end{tabularx}
+\renewcommand{\arraystretch}{1}
+
+% =====================================================================
+%  4. GAINS
+% =====================================================================
+\colorlet{acc}{succ}
+\section{Conclusion et avantages stratégiques}
+En isolant toutes les communications API externes (Jira, Slack, fournisseurs) dans n8n, nous protégeons le code source Spring Boot de l'inflation technologique. La séparation des responsabilités entre Java (métier) et n8n (intégrations) apporte trois gains directs.
+
+\begin{callout}{succ}{Découplage extrême}
+Le code Java reste pur : pas de SDK officiels Slack ou Jira à coder ni à maintenir dans Spring Boot. L'intégration est déléguée visuellement à n8n.
+\end{callout}
+\vspace{6pt}
+\begin{callout}{succ}{Réduction du MTTR}
+Le temps moyen de résolution (MTTR) est drastiquement réduit : les incidents critiques notifient les bons experts techniques et leurs systèmes, nuit et jour, instantanément.
+\end{callout}
+\vspace{6pt}
+\begin{callout}{succ}{Évolutivité facile}
+Si la «\,Société X\,» change d'API, il n'est plus nécessaire de recompiler le backend Spring Boot : il suffit de modifier le flux visuellement, en glisser-déposer, sur n8n.
+\end{callout}
+
+\vspace{10pt}
+La version 3 transforme un simple outil de «\,ticketing\,» en une \textbf{plateforme d'hyper-automatisation ITSM} robuste, et offre à l'entreprise une capacité d'intégration visuelle immédiate pour de futurs partenaires.
 
 \end{document}
