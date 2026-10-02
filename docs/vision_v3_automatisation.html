@@ -1024,10 +1024,10 @@ code {
                     <span class="diagram-zoom">⤢ Agrandir</span>
                     <div class="mermaid">
                     flowchart TD
-                        A((Nouvel Incident)) --> B{Moteur DMN:<br>Catégorie ?}
+                        A(("Nouvel Incident")) --> B{"Moteur DMN:<br>Catégorie ?"}
                         B -->|"Technique / Logiciel"| C["⚙️ ServiceTask<br>Auto-Remédiation n8n"]
                         B -->|"Matériel / Physique"| D["👤 UserTask<br>Action Admin"]
-                        C --> E{Succès API ?}
+                        C --> E{"Succès API ?"}
                         E -->|"Oui"| F(("Résolu Automatiquement"))
                         E -->|"Non (Timeout/Erreur)"| D
                         
@@ -1078,18 +1078,18 @@ code {
                         INCIDENT {
                             uuid id PK
                             string title
-                            string status "NOUVEAU, EN_COURS, AUTO_REMEDIATING"
-                            boolean is_automated "Nouveau (V3)"
-                            string external_ticket_id "ex: JIRA-901"
-                            text n8n_execution_logs "Traces de l'IA"
+                            string status
+                            boolean is_automated
+                            string external_ticket_id
+                            text n8n_execution_logs
                         }
                         N8N_WEBHOOK_EVENT {
                             uuid id PK
                             uuid incident_id FK
-                            string event_type "ex: PARTNER_ACCEPTED"
+                            string event_type
                             timestamp received_at
                         }
-                        INCIDENT ||--o{ N8N_WEBHOOK_EVENT : "génère"
+                        INCIDENT ||--o{ N8N_WEBHOOK_EVENT : "genere"
                     </div>
                 </figure>
             </div>
@@ -1138,15 +1138,15 @@ code {
                     <span class="diagram-zoom">⤢ Agrandir</span>
                     <div class="mermaid">
                     flowchart LR
-                        A((Spring Boot)) -->|JSON Webhook| B[n8n Plateforme]
+                        A(("Spring Boot")) -->|"JSON Webhook"| B["n8n Plateforme"]
                         
-                        B -->|API POST| C[Jira / ServiceNow<br>(Société X)]
-                        B -->|Webhooks| D[Slack / Teams<br>(Alerte Admin)]
-                        B -->|SSH / Scripts| E[Serveurs Locaux<br>(Auto-Remédiation)]
-                        B -->|SMTP| F[Serveur Email<br>(Client Final)]
+                        B -->|"API POST"| C["Jira / ServiceNow<br>(Société X)"]
+                        B -->|"Webhooks"| D["Slack / Teams<br>(Alerte Admin)"]
+                        B -->|"SSH / Scripts"| E["Serveurs Locaux<br>(Auto-Remédiation)"]
+                        B -->|"SMTP"| F["Serveur Email<br>(Client Final)"]
                         
-                        C -.->|Webhook Retour| B
-                        B -.->|Statut Terminé| A
+                        C -.->|"Webhook Retour"| B
+                        B -.->|"Statut Terminé"| A
                         
                         style B fill:#a06bff,stroke:#c49eff,color:#fff
                     </div>
