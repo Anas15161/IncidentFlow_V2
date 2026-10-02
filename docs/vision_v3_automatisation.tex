@@ -453,72 +453,38 @@
     ($(current page.south east)+(-2.3cm,4.1cm)$);
 
   % ---------------------------------------------------------------
-  % Informations du document
-  % ---------------------------------------------------------------
-  \node[
-    anchor=north west,
-    text=coverink,
-    inner sep=0pt,
-    text width=10cm
-  ]
-    at ($(current page.south west)+(2.3cm,3.55cm)$)
-    {
-      {\large\bfseries Technical Architecture \& Automation}\\[4pt]
-      {\color{covermuted}\small
-      Rapport d'architecture détaillé
-      \textbar{}
-      \today}
-    };
-
-  % ---------------------------------------------------------------
-  % Auteur
+  % Informations du document & Auteur
   % ---------------------------------------------------------------
   \node[
     anchor=south west,
     text=coverink,
     inner sep=0pt,
-    text width=9cm
+    align=left
   ]
-    at ($(current page.south west)+(2.3cm,1.7cm)$)
+    at ($(current page.south west)+(2.8cm,2.2cm)$)
     {
-      {\Large \bfseries \textcolor{prim}{Réalisé par : Anas Haddou}}\\[4pt]
-      {\color{covermuted}\small
-      École Marocaine d'Ingénierie}
+      {\large\bfseries Technical Architecture \& Automation}\\[1.5ex]
+      {\color{covermuted}\small Rapport d'architecture détaillé \textbar{} \today}\\[4ex]
+      {\Large \bfseries \textcolor{prim}{Réalisé par : Anas Haddou}}\\[1.5ex]
+      {\color{covermuted}\normalsize École Marocaine d'Ingénierie}
     };
 
   % ---------------------------------------------------------------
   % Logos (EMI & Netmar)
   % ---------------------------------------------------------------
-  
-  % Logo Netmar (Gauche)
-  \IfFileExists{netmar_logo.jpg}{
-    \node[
-      anchor=south west,
-      fill=white,
-      draw=coverrule,
-      rounded corners=3pt,
-      inner sep=5pt
-    ]
-      at ($(current page.south west)+(2.3cm,3.5cm)$)
-      {
-        \includegraphics[height=1.4cm]{netmar_logo.jpg}
-      };
-  }{}
-  
-  % Logo EMI (Droite)
-  \IfFileExists{logo_02.png}{
-    \node[
-      anchor=south east,
-      fill=white,
-      draw=coverrule,
-      rounded corners=3pt,
-      inner sep=5pt
-    ]
-      at ($(current page.south east)+(-2.3cm,3.5cm)$)
-      {
-        \includegraphics[height=1.4cm]{logo_02.png}
-      };
-  }{}
+  \node[
+    anchor=south east,
+    inner sep=0pt
+  ]
+    at ($(current page.south east)+(-2.8cm,2.2cm)$)
+    {
+      \IfFileExists{netmar_logo.jpg}{%
+        \includegraphics[height=2.0cm]{netmar_logo.jpg}\hspace{0.8cm}%
+      }{}%
+      \IfFileExists{logo_02.png}{%
+        \includegraphics[height=2.0cm]{logo_02.png}%
+      }{}%
+    };
 
 \end{tikzpicture}
 
