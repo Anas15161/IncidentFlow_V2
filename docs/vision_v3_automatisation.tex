@@ -660,7 +660,7 @@ Le schéma de la table \code{Incident} sera enrichi avec de nouvelles métadonn�
     \code{event\_type} & \textcolor{muted}{string}\\
     \code{received\_at} & \textcolor{muted}{timestamp}\\[3pt]
   \end{tabular}};
-  \draw[flow,{Stealth[length=0pt]}-{Stealth[length=0pt]}] (-.35,-1.2)--node[lbl,above]{génère}node[lbl,below,pos=.5,yshift=-2pt]{1 $\rightarrow$ 0..n}(.0,-1.2);
+  \draw[flow,-] (-.35,-1.2)--node[lbl,above]{génère}node[lbl,below,pos=.5,yshift=-2pt]{1 $\rightarrow$ 0..n}(.0,-1.2);
 \end{tikzpicture}
 \legend{\key{warn}{Colonnes ajoutées à \code{Incident}}\key{integ}{Nouvelle table}\ PK : clé primaire \textbar{} FK : clé étrangère}
 \end{figbox}
