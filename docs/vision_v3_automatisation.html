@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IncidentFlow V3 — Vision & Automatisation</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root {
+    --bg:            #08090c;
+    --bg-soft:       #0d0f14;
+    --surface:       rgba(20, 23, 30, 0.72);
+    --surface-solid: #14171e;
+
+    --border:        rgba(255, 255, 255, 0.07);
+    --border-strong: rgba(255, 255, 255, 0.13);
+
+    --text:          #e9ecf2;
+    --text-dim:      #98a0b0;
+    --text-faint:    #5a6373;
+
+    --blue:    #4d7cfe;
+    --purple:  #a06bff;
+    --emerald: #2dd4a7;
+    --amber:   #f5a524;
+
+    --radius-sm: 10px;
+    --radius:    16px;
+    --radius-lg: 22px;
+
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --font: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+::selection { background: rgba(77, 124, 254, 0.32); color: #fff; }
+
+h1, h2, h3, h4 { line-height: 1.2; letter-spacing: -0.025em; margin: 0; }
+
+code {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    background: rgba(255, 255, 255, 0.055);
+    border: 1px solid var(--border);
+    padding: 2px 6px;
+    border-radius: 6px;
+    color: #cfd7e6;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   AMBIENT BACKGROUND
+   ============================================================ */
+.ambient {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    overflow: hidden;
+    background: var(--bg);
+}
+
+.ambient::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 20%, transparent 78%);
+    -webkit-mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 20%, transparent 78%);
+}
+
+.blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.16;
+    will-change: transform;
+}
+.blob-1 { top: -18%; left: -12%; width: 48vw; height: 48vw; background: var(--blue);    animation: drift 26s var(--ease) infinite alternate; }
+.blob-2 { top: 22%;  right: -18%; width: 52vw; height: 52vw; background: var(--purple);  animation: drift 32s var(--ease) infinite alternate-reverse; }
+.blob-3 { bottom: -14%; left: 18%; width: 44vw; height: 44vw; background: var(--emerald); animation: drift 29s var(--ease) infinite alternate; animation-delay: -8s; }
+.blob-4 { top: 58%; left: -16%; width: 38vw; height: 38vw; background: var(--amber);   animation: drift 35s var(--ease) infinite alternate-reverse; animation-delay: -14s; }
+
+@keyframes drift {
+    from { transform: translate3d(0,0,0) scale(1); }
+    to   { transform: translate3d(9%, 12%, 0) scale(1.18); }
+}
+
+/* ============================================================
+   READING PROGRESS BAR
+   ============================================================ */
+.progress-track {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.05);
+    z-index: 1000;
+}
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--blue), var(--purple), var(--emerald));
+    transition: width 0.12s linear;
+    box-shadow: 0 0 14px rgba(77, 124, 254, 0.55);
+}
+
+/* ============================================================
+   TOP BAR
+   ============================================================ */
+.topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 32px;
+    pointer-events: none;
+    transition: background 0.4s var(--ease), backdrop-filter 0.4s var(--ease), border-color 0.4s var(--ease);
+    border-bottom: 1px solid transparent;
+}
+.topbar.scrolled {
+    background: rgba(8, 9, 12, 0.72);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    border-bottom-color: var(--border);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.86rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    pointer-events: auto;
+}
+.brand-mark {
+    width: 26px; height: 26px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    display: grid;
+    place-items: center;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #fff;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 6px 20px rgba(77,124,254,0.35);
+}
+.brand-sub {
+    color: #334155;
+    font-weight: 400;
+    padding-left: 10px;
+    margin-left: 4px;
+    border-left: 1px solid var(--border-strong);
+}
+
+.topbar-meta {
+    font-size: 0.74rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    font-weight: 500;
+    pointer-events: auto;
+}
+
+@media (max-width: 720px) {
+    .topbar { padding: 14px 20px; }
+    .brand-sub, .topbar-meta { display: none; }
+}
+
+/* ============================================================
+   SIDE NAVIGATION DOTS
+   ============================================================ */
+.nav-dots {
+    position: fixed;
+    right: 26px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 900;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.nav-dots a {
+    position: relative;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.16);
+    transition: all 0.35s var(--ease);
+    display: block;
+}
+.nav-dots a::after {
+    content: attr(data-label);
+    position: absolute;
+    right: 22px;
+    top: 50%;
+    transform: translateY(-50%) translateX(6px);
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s var(--ease);
+}
+.nav-dots a:hover { background: rgba(255,255,255,0.42); }
+.nav-dots a:hover::after { opacity: 1; transform: translateY(-50%) translateX(0); }
+.nav-dots a.active {
+    background: var(--accent, var(--blue));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent, var(--blue)) 18%, transparent);
+    transform: scale(1.25);
+}
+.nav-dots a.active::after { opacity: 1; transform: translateY(-50%) translateX(0); color: var(--text); }
+
+@media (max-width: 1080px) { .nav-dots { display: none; } }
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero {
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 120px 24px 90px;
+    position: relative;
+}
+
+.hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 7px 15px;
+    border: 1px solid var(--border-strong);
+    border-radius: 100px;
+    background: rgba(255, 255, 255, 0.025);
+    backdrop-filter: blur(10px);
+    margin-bottom: 30px;
+    opacity: 0;
+    animation: riseIn 0.9s var(--ease) 0.1s forwards;
+}
+.hero-eyebrow .pulse {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--emerald);
+    box-shadow: 0 0 0 0 rgba(45, 212, 167, 0.6);
+    animation: pulse 2.4s ease-out infinite;
+}
+@keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(45, 212, 167, 0.55); }
+    70%  { box-shadow: 0 0 0 9px rgba(45, 212, 167, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(45, 212, 167, 0); }
+}
+
+.hero h1 {
+    font-size: clamp(2.6rem, 7vw, 5.2rem);
+    font-weight: 800;
+    letter-spacing: -0.045em;
+    max-width: 15ch;
+    background: linear-gradient(160deg, #ffffff 12%, #b9c4dd 52%, #6d7a94 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    opacity: 0;
+    animation: riseIn 1s var(--ease) 0.22s forwards;
+}
+
+.hero h1 .accent {
+    background: linear-gradient(110deg, var(--blue), var(--purple) 55%, var(--emerald));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero-lede {
+    font-size: clamp(1rem, 1.5vw, 1.16rem);
+    color: var(--text-dim);
+    max-width: 660px;
+    margin: 26px 0 0;
+    font-weight: 300;
+    opacity: 0;
+    animation: riseIn 1s var(--ease) 0.36s forwards;
+}
+
+.hero-stats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 42px;
+    opacity: 0;
+    animation: riseIn 1s var(--ease) 0.5s forwards;
+}
+.stat-chip {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    padding: 9px 16px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.025);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s var(--ease);
+}
+.stat-chip:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+}
+.stat-chip .dot { width: 7px; height: 7px; border-radius: 50%; }
+
+.hero-scroll {
+    position: absolute;
+    bottom: 38px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    opacity: 0;
+    animation: riseIn 1s var(--ease) 0.8s forwards;
+}
+.hero-scroll .line {
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(180deg, var(--text-faint), transparent);
+    animation: scrollLine 2.2s var(--ease) infinite;
+}
+@keyframes scrollLine {
+    0%   { transform: scaleY(0); transform-origin: top; opacity: 0; }
+    45%  { transform: scaleY(1); transform-origin: top; opacity: 1; }
+    55%  { transform: scaleY(1); transform-origin: bottom; opacity: 1; }
+    100% { transform: scaleY(0); transform-origin: bottom; opacity: 0; }
+}
+
+@keyframes riseIn {
+    from { opacity: 0; transform: translateY(26px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+
+/* --- Corporate Tech Hero Animations & Shapes --- */
+.hero-grid {
+    position: absolute; inset: 0; z-index: -1;
+    background-image: 
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, transparent 100%);
+    animation: panGrid 60s linear infinite;
+}
+@keyframes panGrid { 0% { background-position: 0 0; } 100% { background-position: 0 400px; } }
+
+.glass-shape {
+    position: absolute;
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    border: 1px solid rgba(255,255,255,0.05);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: -1;
+    animation: floatShape 12s ease-in-out infinite alternate;
+}
+.shape-1 { width: 150px; height: 150px; top: 15%; left: 10%; transform: rotate(15deg); }
+.shape-2 { width: 200px; height: 200px; bottom: 20%; right: 5%; border-radius: 50%; animation-delay: -5s; }
+.shape-3 { width: 100px; height: 100px; top: 40%; left: 80%; transform: rotate(-20deg); animation-duration: 15s; }
+
+@keyframes floatShape {
+    0% { transform: translateY(0) rotate(0deg); }
+    100% { transform: translateY(-30px) rotate(10deg); }
+}
+
+.stat-chip { opacity: 0; animation: riseIn 0.8s var(--ease) forwards; }
+.chip-1 { animation-delay: 0.5s; }
+.chip-2 { animation-delay: 0.6s; }
+.chip-3 { animation-delay: 0.7s; }
+.chip-4 { animation-delay: 0.8s; }
+
+.v2-badge {
+    display: inline-block;
+    padding: 2px 12px;
+    background: rgba(96, 165, 250, 0.1);
+    color: #60a5fa;
+    border: 1px solid rgba(96, 165, 250, 0.2);
+    border-radius: 100px;
+    font-size: 0.6em;
+    vertical-align: middle;
+    margin-left: 10px;
+    box-shadow: 0 0 20px rgba(96, 165, 250, 0.1);
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.container {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 0 32px;
+}
+@media (max-width: 720px) { .container { padding: 0 20px; } }
+
+/* ============================================================
+   STEP SECTION
+   ============================================================ */
+.step {
+    --accent: var(--blue);
+    position: relative;
+    padding: 110px 0;
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.9s var(--ease), transform 0.9s var(--ease);
+}
+.step.visible { opacity: 1; transform: none; }
+
+.step + .step { border-top: 1px solid var(--border); }
+
+/* Section head */
+.step-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    margin-bottom: 56px;
+    max-width: 860px;
+}
+@media (max-width: 640px) { .step-head { flex-direction: column; gap: 18px; } }
+
+.step-index {
+    flex-shrink: 0;
+    width: 54px; height: 54px;
+    border-radius: 15px;
+    display: grid;
+    place-items: center;
+    font-size: 1.15rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    box-shadow: 0 0 34px -10px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.step-kicker {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 9px;
+}
+
+.step-title {
+    font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    color: var(--text);
+}
+
+.step-desc {
+    font-size: 1.02rem;
+    color: var(--text-dim);
+    font-weight: 300;
+    margin-top: 12px;
+    max-width: 62ch;
+}
+
+/* Two-column content */
+.step-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 28px;
+    align-items: start;
+}
+.step-grid.flip .col-card { order: 2; }
+.step-grid.flip .col-diagram { order: 1; }
+
+@media (max-width: 980px) {
+    .step-grid,
+    .step-grid.flip { grid-template-columns: 1fr; }
+    .step-grid.flip .col-card,
+    .step-grid.flip .col-diagram { order: initial; }
+}
+
+/* ============================================================
+   GLASS CARD
+   ============================================================ */
+.card {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 34px 32px;
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    box-shadow:
+        0 1px 0 0 rgba(255,255,255,0.045) inset,
+        0 24px 60px -24px rgba(0, 0, 0, 0.85);
+    overflow: hidden;
+    transition: border-color 0.4s var(--ease), transform 0.4s var(--ease), box-shadow 0.4s var(--ease);
+}
+.card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.75;
+}
+.card::after {
+    content: "";
+    position: absolute;
+    top: -60px; left: -60px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background: var(--accent);
+    filter: blur(90px);
+    opacity: 0.09;
+    pointer-events: none;
+}
+.card:hover {
+    border-color: color-mix(in srgb, var(--accent) 32%, var(--border-strong));
+    transform: translateY(-3px);
+    box-shadow:
+        0 1px 0 0 rgba(255,255,255,0.06) inset,
+        0 32px 70px -26px rgba(0, 0, 0, 0.9),
+        0 0 44px -22px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.card h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+.card h3 .icon {
+    width: 30px; height: 30px;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    font-size: 0.92rem;
+    background: color-mix(in srgb, var(--accent) 13%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+.card > p {
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    font-weight: 300;
+    margin: 0 0 4px;
+}
+.card b, .card strong { color: var(--text); font-weight: 600; }
+
+/* Detail list */
+.detail-list {
+    list-style: none;
+    padding: 0;
+    margin: 22px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.detail-list li {
+    position: relative;
+    padding-left: 26px;
+    font-size: 0.91rem;
+    font-weight: 300;
+    color: var(--text-dim);
+    line-height: 1.6;
+}
+.detail-list li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 7px; height: 7px;
+    border-radius: 2px;
+    background: var(--accent);
+    opacity: 0.85;
+    transform: rotate(45deg);
+    box-shadow: 0 0 12px -2px var(--accent);
+}
+.detail-list li b { color: var(--text); font-weight: 600; }
+
+/* Inline highlights */
+.hl { font-weight: 600; }
+.hl-blue    { color: var(--blue); }
+.hl-purple  { color: var(--purple); }
+.hl-emerald { color: var(--emerald); }
+.hl-amber   { color: var(--amber); }
+
+/* ============================================================
+   DIAGRAM PANEL
+   ============================================================ */
+.diagram {
+    position: relative;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 30px 22px 22px;
+    min-height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-in;
+    overflow: hidden;
+    transition: border-color 0.4s var(--ease), box-shadow 0.4s var(--ease);
+}
+.diagram::before { display: none; }
+.diagram:hover {
+    border-color: color-mix(in srgb, var(--accent) 30%, var(--border-strong));
+    box-shadow: 0 0 48px -20px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.diagram-label {
+    position: absolute;
+    top: 14px;
+    left: 18px;
+    font-size: 0.64rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #475569;
+    pointer-events: none;
+}
+
+.diagram-zoom {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: #475569;
+    background: rgba(0,0,0,0.05);
+    border: 1px solid var(--border);
+    padding: 5px 10px;
+    border-radius: 100px;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: all 0.3s var(--ease);
+    pointer-events: none;
+}
+.diagram:hover .diagram-zoom { opacity: 1; transform: none; }
+
+.diagram .mermaid {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+}
+.diagram .mermaid svg { max-width: 100%; height: auto; }
+
+
+
+/* ============================================================
+   LIGHTBOX
+   ============================================================ */
+.lightbox {
+    position: fixed; inset: 0; z-index: 2000;
+    display: none; align-items: center; justify-content: center;
+    padding: 5vh 4vw; background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(14px); cursor: zoom-out; opacity: 0;
+    transition: opacity 0.3s var(--ease);
+}
+.lightbox.open { display: flex; opacity: 1; }
+.lightbox-inner {
+    position: relative; max-width: 1400px; width: 100%;
+    max-height: 90vh; overflow: auto; background: #fff;
+    border: 1px solid #e2e8f0; border-radius: var(--radius-lg);
+    padding: 44px 36px; box-shadow: 0 40px 120px -30px rgba(0,0,0,0.2);
+    transform: scale(0.96); transition: transform 0.35s var(--ease);
+}
+.lightbox.open .lightbox-inner { transform: scale(1); }
+.lightbox-inner .mermaid { display: flex; justify-content: center; }
+.lightbox-inner svg { max-width: 100%; height: auto; }
+.lightbox-close {
+    position: absolute; top: 14px; right: 14px;
+    width: 34px; height: 34px; border-radius: 10px;
+    display: grid; place-items: center;
+    background: #f1f5f9; border: 1px solid #e2e8f0;
+    color: #475569; font-size: 0.9rem; cursor: pointer;
+    transition: all 0.25s var(--ease);
+}
+.lightbox-close:hover { background: #e2e8f0; color: #0f172a; }
+
+
+/* ============================================================
+   LIGHTBOX
+   ============================================================ */
+.lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 5vh 4vw;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    cursor: zoom-out;
+    opacity: 0;
+    transition: opacity 0.3s var(--ease);
+}
+.lightbox.open { display: flex; opacity: 1; }
+
+.lightbox-inner {
+    position: relative;
+    max-width: 1400px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: auto;
+    background: #ffffff;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    padding: 44px 36px;
+    box-shadow: 0 40px 120px -30px rgba(0,0,0,0.95);
+    transform: scale(0.96);
+    transition: transform 0.35s var(--ease);
+}
+.lightbox.open .lightbox-inner { transform: scale(1); }
+.lightbox-inner .mermaid { display: flex; justify-content: center; }
+.lightbox-inner svg { max-width: 100%; height: auto; }
+
+.lightbox-close {
+    position: absolute;
+    top: 14px; right: 14px;
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: #f1f5f9; color: #475569; border-color: #e2e8f0;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.25s var(--ease);
+}
+.lightbox-close:hover { background: #e2e8f0; color: #0f172a; }
+
+/* ============================================================
+   RECAP STRIP
+   ============================================================ */
+.recap {
+    padding: 100px 0 120px;
+    border-top: 1px solid var(--border);
+}
+.recap-title {
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 40px;
+}
+.recap-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+@media (max-width: 900px) { .recap-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 520px) { .recap-grid { grid-template-columns: 1fr; } }
+
+.recap-item {
+    --accent: var(--blue);
+    position: relative;
+    padding: 26px 22px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.018);
+    transition: all 0.35s var(--ease);
+}
+.recap-item:hover {
+    border-color: color-mix(in srgb, var(--accent) 34%, transparent);
+    background: color-mix(in srgb, var(--accent) 5%, rgba(255,255,255,0.018));
+    transform: translateY(-3px);
+}
+.recap-num {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 12px;
+}
+.recap-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.015em;
+    margin-bottom: 7px;
+}
+.recap-text {
+    font-size: 0.82rem;
+    font-weight: 300;
+    color: var(--text-faint);
+    line-height: 1.55;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+.footer {
+    border-top: 1px solid var(--border);
+    padding: 44px 0;
+}
+.footer-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: var(--text-faint);
+    font-weight: 300;
+}
+.footer-inner .brand { color: var(--text-dim); }
+
+/* ============================================================
+   ACCESSIBILITY / MOTION
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    .step { opacity: 1; transform: none; }
+}
+
+:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+@media print {
+    .ambient, .topbar, .nav-dots, .progress-track, .hero-scroll, .diagram-zoom { display: none !important; }
+    body { background: #fff; color: #111; }
+    .step { opacity: 1 !important; transform: none !important; page-break-inside: avoid; }
+    .card, .diagram { background: #fff !important; border-color: #ddd !important; box-shadow: none !important; }
+    .card > p, .detail-list li, .step-desc { color: #444 !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ AMBIENT BACKGROUND ============ -->
+<div class="ambient" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="blob blob-4"></div>
+</div>
+
+<!-- ============ PROGRESS BAR ============ -->
+<div class="progress-track" aria-hidden="true">
+    <div class="progress-fill" id="progressFill"></div>
+</div>
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar" id="topbar">
+    <div class="brand">
+        <span class="brand-mark">IF</span>
+        <span>IncidentFlow</span>
+        <span class="brand-sub">V3 — Automatisation</span>
+    </div>
+    <div class="topbar-meta">Soutenance technique</div>
+</header>
+
+<!-- ============ SIDE NAV ============ -->
+<nav class="nav-dots" id="navDots" aria-label="Navigation des sections">
+    <a href="#hero"      data-label="Vision V3"         data-target="hero"      aria-label="Vision"></a>
+    <a href="#step-1"    data-label="Les Scénarios"     data-target="step-1"    style="--accent:#4d7cfe" aria-label="Étape 1"></a>
+    <a href="#step-2"    data-label="Modifications Code" data-target="step-2"    style="--accent:#f5a524" aria-label="Étape 2"></a>
+    <a href="#step-3"    data-label="Ressources & APIs" data-target="step-3"    style="--accent:#a06bff" aria-label="Étape 3"></a>
+    <a href="#step-4"    data-label="Bilan V3"          data-target="step-4"    style="--accent:#2dd4a7" aria-label="Étape 4"></a>
+</nav>
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="hero" style="padding: 140px 24px 80px; position: relative; overflow: hidden;">
+    <div class="hero-grid"></div>
+    <div class="glass-shape shape-1" style="background: linear-gradient(135deg, rgba(245,165,36,0.05), rgba(245,165,36,0.01)); border-color: rgba(245,165,36,0.1);"></div>
+    <div class="glass-shape shape-2" style="background: linear-gradient(135deg, rgba(45,212,167,0.05), rgba(45,212,167,0.01)); border-color: rgba(45,212,167,0.1);"></div>
+
+    <div class="hero-eyebrow" style="border-radius: 4px; border-color: rgba(255,255,255,0.15); letter-spacing: 0.1em; color: #a1a1aa; background: transparent;">
+        Perspectives d'Évolution
+    </div>
+
+    <h1 style="background: none; -webkit-text-fill-color: #ffffff; color: #ffffff; font-weight: 700; letter-spacing: -0.02em; font-size: clamp(2.2rem, 5vw, 4rem); max-width: 100%; position: relative;">
+        IncidentFlow <span class="v2-badge" style="background: rgba(245,165,36,0.1); color: #f5a524; border-color: rgba(245,165,36,0.2); box-shadow: 0 0 20px rgba(245,165,36,0.1);">V3</span>
+    </h1>
+    
+    <h2 style="font-size: clamp(1.4rem, 2.5vw, 2rem); font-weight: 400; color: #94a3b8; margin-top: 5px; letter-spacing: -0.01em; opacity: 0; animation: riseIn 1s var(--ease) 0.3s forwards;">
+        Hyper-Automatisation &amp; n8n
+    </h2>
+
+    <p class="hero-lede" style="color: #64748b; line-height: 1.7; font-size: 1.1rem; max-width: 700px; position: relative; z-index: 2;">
+        Passer d'une orchestration manuelle à un système "Zero-Touch". Intégration de Webhooks, Service Tasks BPMN et workflows visuels n8n pour résoudre les incidents de manière autonome.
+    </p>
+
+    <div class="hero-stats" style="margin-top: 40px; gap: 15px; position: relative; z-index: 2;">
+        <div class="stat-chip chip-1" style="background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); padding: 12px 20px;">
+            Workflows n8n
+        </div>
+        <div class="stat-chip chip-2" style="background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); padding: 12px 20px;">
+            ServiceTasks (BPMN)
+        </div>
+        <div class="stat-chip chip-3" style="background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); padding: 12px 20px;">
+            APIs &amp; Webhooks
+        </div>
+        <div class="stat-chip chip-4" style="background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); padding: 12px 20px;">
+            Auto-Remédiation
+        </div>
+    </div>
+
+    <div class="hero-scroll" style="bottom: 20px;">
+        <span style="color: #64748b;">Découvrir la vision V3</span>
+        <span class="line" style="background: linear-gradient(180deg, #f5a524, transparent);"></span>
+    </div>
+</section>
+
+<!-- ============ MAIN ============ -->
+<main class="container">
+
+    <!-- ---------- ÉTAPE 1 ---------- -->
+    <section class="step" id="step-1" style="--accent: var(--blue)">
+        <div class="step-head">
+            <div class="step-index">01</div>
+            <div>
+                <div class="step-kicker">Étape 1 — Scénarios d'Automatisation</div>
+                <h2 class="step-title">Zero-Touch vs Intervention Humaine</h2>
+                <p class="step-desc">
+                    L'automatisation ne remplace pas l'humain, elle filtre le bruit. Le système décide intelligemment du routage.
+                </p>
+            </div>
+        </div>
+
+        <div class="step-grid">
+            <div class="col-card">
+                <div class="card">
+                    <h3><span class="icon">🤖</span> Scénario 100% Automatisé</h3>
+                    <p>
+                        <b>Exemple :</b> "Serveur Web Inaccessible."
+                        Le moniteur (Zabbix/Prometheus) crée l'incident via notre API. 
+                        Flowable détecte la criticité technique. Il invoque n8n qui lance un script SSH pour redémarrer le serveur, puis clôture l'incident en base de données. <i>(0 seconde d'intervention humaine)</i>.
+                    </p>
+                    <h3 style="margin-top: 25px;"><span class="icon">👨‍💻</span> L'Exception Humaine (Fallback)</h3>
+                    <p>
+                        <b>Exemple :</b> "Imprimante physique défectueuse" ou "Échec du script SSH".
+                    </p>
+                    <ul class="detail-list">
+                        <li>Si une action physique est requise (remplacer du matériel).</li>
+                        <li>Si une validation de sécurité est requise par un manager.</li>
+                        <li>Si l'API du prestataire externe (ex: Société X) ne répond pas.</li>
+                    </ul>
+                    <p style="margin-top: 10px; color: var(--text-dim); font-size: 0.9rem;">
+                        Dans ces cas, le workflow BPMN quitte la boucle d'automatisation et génère une <b>UserTask</b> classique assignée à l'Administrateur local via Keycloak.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-diagram">
+                <figure class="diagram" data-diagram>
+                    <figcaption class="diagram-label">Arbre de Décision BPMN</figcaption>
+                    <span class="diagram-zoom">⤢ Agrandir</span>
+                    <div class="mermaid">
+                    flowchart TD
+                        A((Nouvel Incident)) --> B{Moteur DMN:<br>Catégorie ?}
+                        B -->|"Technique / Logiciel"| C["⚙️ ServiceTask<br>Auto-Remédiation n8n"]
+                        B -->|"Matériel / Physique"| D["👤 UserTask<br>Action Admin"]
+                        C --> E{Succès API ?}
+                        E -->|"Oui"| F(("Résolu Automatiquement"))
+                        E -->|"Non (Timeout/Erreur)"| D
+                        
+                        style C fill:#4d7cfe,stroke:#82a3ff,color:#fff
+                    </div>
+                </figure>
+            </div>
+        </div>
+    </section>
+
+    <!-- ---------- ÉTAPE 2 ---------- -->
+    <section class="step" id="step-2" style="--accent: var(--amber)">
+        <div class="step-head">
+            <div class="step-index">02</div>
+            <div>
+                <div class="step-kicker">Étape 2 — Chantiers Techniques</div>
+                <h2 class="step-title">Impact sur le Code et la Base de données</h2>
+                <p class="step-desc">
+                    Quelles modifications devrons-nous apporter concrètement au Frontend, au Backend et à PostgreSQL pour la V3 ?
+                </p>
+            </div>
+        </div>
+
+        <div class="step-grid flip">
+            <div class="col-card">
+                <div class="card">
+                    <h3><span class="icon">⚙️</span> Modifications Backend & DB</h3>
+                    <ul class="detail-list">
+                        <li><b>PostgreSQL :</b> Ajout des colonnes <code>is_automated (boolean)</code>, <code>external_ticket_id (varchar)</code>, et <code>remediation_logs (text)</code> dans la table <i>Incident</i> pour tracer l'historique des scripts n8n.</li>
+                        <li><b>Spring Boot :</b> Développement d'un nouveau Controller REST <code>WebhookController.java</code> pour recevoir les callbacks asynchrones de n8n (ex: <i>"Ticket clôturé par le prestataire"</i>).</li>
+                        <li><b>Sécurité :</b> Ajout de tokens API (API Keys) pour sécuriser les échanges entre Spring Boot et n8n sans passer par l'interface de login React.</li>
+                    </ul>
+                    
+                    <h3 style="margin-top: 25px;"><span class="icon">🖥️</span> Modifications Frontend (React)</h3>
+                    <ul class="detail-list">
+                        <li><b>Nouveau Dashboard :</b> Une vue "Supervision IA/Auto" permettant à l'Admin de voir en direct les tickets en cours de traitement par les machines.</li>
+                        <li><b>Lecture seule :</b> Si un ticket est <code>is_automated=true</code>, l'interface React verrouille le bouton "Traiter" pour éviter les conflits humain/machine.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-diagram">
+                <figure class="diagram" data-diagram>
+                    <figcaption class="diagram-label">Mise à jour Base de Données</figcaption>
+                    <span class="diagram-zoom">⤢ Agrandir</span>
+                    <div class="mermaid">
+                    erDiagram
+                        INCIDENT {
+                            uuid id PK
+                            string title
+                            string status "NOUVEAU, EN_COURS, AUTO_REMEDIATING"
+                            boolean is_automated "Nouveau (V3)"
+                            string external_ticket_id "ex: JIRA-901"
+                            text n8n_execution_logs "Traces de l'IA"
+                        }
+                        N8N_WEBHOOK_EVENT {
+                            uuid id PK
+                            uuid incident_id FK
+                            string event_type "ex: PARTNER_ACCEPTED"
+                            timestamp received_at
+                        }
+                        INCIDENT ||--o{ N8N_WEBHOOK_EVENT : "génère"
+                    </div>
+                </figure>
+            </div>
+        </div>
+    </section>
+
+    <!-- ---------- ÉTAPE 3 ---------- -->
+    <section class="step" id="step-3" style="--accent: var(--purple)">
+        <div class="step-head">
+            <div class="step-index">03</div>
+            <div>
+                <div class="step-kicker">Étape 3 — Écosystème</div>
+                <h2 class="step-title">Ressources & Intégrations d'APIs</h2>
+                <p class="step-desc">
+                    De quoi a-t-on besoin pour mettre en place ce centre névralgique automatisé ?
+                </p>
+            </div>
+        </div>
+
+        <div class="step-grid">
+            <div class="col-card">
+                <div class="card">
+                    <h3><span class="icon">📦</span> Infrastructures & Ressources</h3>
+                    <p>
+                        L'intégration de la V3 requiert l'ajout du conteneur <code>n8nio/n8n</code> à notre fichier <i>docker-compose.yml</i>, ainsi qu'une base Redis supplémentaire pour gérer la file d'attente des webhooks.
+                    </p>
+                    
+                    <h3 style="margin-top: 25px;"><span class="icon">🔌</span> Les APIs Intégrées (Exemples)</h3>
+                    <ul class="detail-list">
+                        <li>
+                            <b>Outils ITSM (Société X) :</b> <span class="hl hl-purple">Jira Service Management</span> ou <span class="hl hl-purple">ServiceNow</span>. n8n va utiliser leurs APIs REST pour répliquer nos incidents dans le système du sous-traitant.
+                        </li>
+                        <li>
+                            <b>Communication :</b> <span class="hl hl-purple">Slack API / MS Teams Webhooks</span>. Pour alerter les canaux d'astreinte IT avec des boutons d'actions directs dans le chat (ex: "Approuver le redémarrage").
+                        </li>
+                        <li>
+                            <b>Infrastructure :</b> <span class="hl hl-purple">AWS EC2 / SSH / Ansible</span>. Pour exécuter directement des commandes de redémarrage ou de purge de mémoire si l'incident concerne un serveur.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-diagram">
+                <figure class="diagram" data-diagram>
+                    <figcaption class="diagram-label">Topologie des intégrations n8n</figcaption>
+                    <span class="diagram-zoom">⤢ Agrandir</span>
+                    <div class="mermaid">
+                    flowchart LR
+                        A((Spring Boot)) -->|JSON Webhook| B[n8n Plateforme]
+                        
+                        B -->|API POST| C[Jira / ServiceNow<br>(Société X)]
+                        B -->|Webhooks| D[Slack / Teams<br>(Alerte Admin)]
+                        B -->|SSH / Scripts| E[Serveurs Locaux<br>(Auto-Remédiation)]
+                        B -->|SMTP| F[Serveur Email<br>(Client Final)]
+                        
+                        C -.->|Webhook Retour| B
+                        B -.->|Statut Terminé| A
+                        
+                        style B fill:#a06bff,stroke:#c49eff,color:#fff
+                    </div>
+                </figure>
+            </div>
+        </div>
+    </section>
+
+    <!-- ---------- ÉTAPE 4 ---------- -->
+    <section class="step" id="step-4" style="--accent: var(--emerald)">
+        <div class="step-head">
+            <div class="step-index">04</div>
+            <div>
+                <div class="step-kicker">Étape 4 — Bilan V3</div>
+                <h2 class="step-title">Les gains architecturaux</h2>
+                <p class="step-desc">
+                    L'impact direct de la séparation des responsabilités entre Java (Métier) et n8n (Intégrations).
+                </p>
+            </div>
+        </div>
+
+        <div class="step-grid">
+            <div class="col-card" style="grid-column: 1 / -1;">
+                <div class="card" style="display: flex; gap: 40px; align-items: flex-start; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px;">
+                        <h3><span class="icon">🛡️</span> Découplage Extrême</h3>
+                        <p>Le code Java de l'application reste pur. Pas besoin de coder ou de maintenir les SDK officiels de Slack ou Jira dans Spring Boot. L'intégration est déléguée visuellement à n8n.</p>
+                    </div>
+                    <div style="flex: 1; min-width: 250px;">
+                        <h3><span class="icon">⏱️</span> Réduction du MTTR</h3>
+                        <p>Le temps moyen de résolution (MTTR) chute. Les incidents critiques notifient les bons experts techniques et leurs systèmes la nuit comme le jour, instantanément.</p>
+                    </div>
+                    <div style="flex: 1; min-width: 250px;">
+                        <h3><span class="icon">📈</span> Évolutivité Facile</h3>
+                        <p>Si la "Société X" change d'API, il n'y a plus besoin de recompiler le Backend Spring Boot. Il suffit de modifier le flux visuellement en glisser-déposer sur n8n.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+    <div class="container footer-inner">
+        <div class="brand">
+            <span class="brand-mark">IF</span>
+            <span>IncidentFlow V2</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div style="display: flex; flex-direction: column; text-align: right;">
+                <span style="font-weight: 600; color: var(--text); font-size: 0.9rem;">Présenté par Anas</span>
+                <span style="letter-spacing: 0.05em;">École Marocaine d'Ingénierie</span>
+            </div>
+            <img src="logo_02.png" alt="Logo EMI" style="height: 45px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); background: rgba(255,255,255,0.1); padding: 5px; border-radius: 8px; border: 1px solid var(--border);">
+        </div>
+    </div>
+</footer>
+
+<!-- ============ LIGHTBOX ============ -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Diagramme agrandi">
+    <div class="lightbox-inner">
+        <button class="lightbox-close" id="lightboxClose" aria-label="Fermer">✕</button>
+        <div class="lightbox-body" id="lightboxBody"></div>
+    </div>
+</div>
+
+<!-- ============ MERMAID ============ -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+/* ------------------------------------------------------------------
+   1. MERMAID — thème sombre sur mesure
+------------------------------------------------------------------ */
+mermaid.initialize({
+    startOnLoad: false,
+    theme: 'default',
+    securityLevel: 'loose',
+    fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif"
+});/* Corrige une éventuelle couleur invalide (sécurité) */
+mermaid.initialize({
+    startOnLoad: false,
+    theme: 'default',
+    securityLevel: 'loose',
+    fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif"
+});/* ------------------------------------------------------------------
+   2. RENDU + INTERACTIONS
+------------------------------------------------------------------ */
+document.addEventListener('DOMContentLoaded', () => {
+
+    /* ---- Navigation active (Moved UP) ---- */
+    const dots = Array.from(document.querySelectorAll('.nav-dots a'));
+    const targets = ['hero', 'step-1', 'step-2', 'step-3', 'step-4', 'recap']
+        .map(id => document.getElementById(id))
+        .filter(Boolean);
+
+    function updateActiveDot() {
+        if (!targets.length) return;
+        const mid = window.innerHeight * 0.42;
+        let current = targets[0];
+        targets.forEach(t => {
+            const r = t.getBoundingClientRect();
+            if (r.top <= mid) current = t;
+        });
+        dots.forEach(d => {
+            d.classList.toggle('active', d.dataset.target === current.id);
+        });
+    }
+
+    /* ---- Barre de progression ---- */
+    const progressFill = document.getElementById('progressFill');
+    const topbar       = document.getElementById('topbar');
+
+    const onScroll = () => {
+        const h = document.documentElement;
+        const max = h.scrollHeight - h.clientHeight;
+        const pct = max > 0 ? (h.scrollTop / max) * 100 : 0;
+        if(progressFill) progressFill.style.width = pct + '%';
+        if(topbar) topbar.classList.toggle('scrolled', h.scrollTop > 40);
+        updateActiveDot();
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    /* ---- Apparition des sections ---- */
+    const steps = document.querySelectorAll('.step');
+    const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                revealObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+
+    steps.forEach(s => revealObserver.observe(s));
+
+    /* ---- Lightbox pour les diagrammes ---- */
+    const lightbox = document.getElementById('lightbox');
+    const lightboxBody = document.getElementById('lightboxBody');
+    const lightboxClose = document.getElementById('lightboxClose');
+
+    function openLightbox(sourceEl) {
+        const svg = sourceEl.querySelector('svg');
+        if (!svg) return;
+        lightboxBody.innerHTML = '';
+        const clone = svg.cloneNode(true);
+        clone.removeAttribute('width');
+        clone.removeAttribute('height');
+        clone.style.width = '100%';
+        clone.style.height = 'auto';
+        lightboxBody.appendChild(clone);
+        lightbox.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+        lightbox.classList.remove('open');
+        document.body.style.overflow = '';
+        setTimeout(() => { lightboxBody.innerHTML = ''; }, 300);
+    }
+
+    document.querySelectorAll('[data-diagram]').forEach(fig => {
+        fig.addEventListener('click', () => openLightbox(fig));
+        fig.style.cursor = 'zoom-in';
+    });
+
+    if(lightboxClose) lightboxClose.addEventListener('click', (e) => { e.stopPropagation(); closeLightbox(); });
+    if(lightbox) lightbox.addEventListener('click', (e) => {
+        if (e.target === lightbox || e.target.classList.contains('lightbox-body') || e.target.closest('.lightbox-inner') === null) {
+            closeLightbox();
+        }
+    });
+    
+    /* ---- Navigation clavier entre sections (← / →) ---- */
+    document.addEventListener('keydown', (e) => {
+        if (typeof lightbox !== 'undefined' && lightbox && lightbox.classList.contains('open')) {
+            if (e.key === 'Escape') closeLightbox();
+            return;
+        }
+        if (e.target.matches('input, textarea, select')) return;
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+
+        const mid = window.innerHeight * 0.42;
+        let idx = 0;
+        targets.forEach((t, i) => {
+            if (t.getBoundingClientRect().top <= mid) idx = i;
+        });
+        const next = e.key === 'ArrowRight'
+            ? Math.min(idx + 1, targets.length - 1)
+            : Math.max(idx - 1, 0);
+        
+        if (targets[next]) {
+            targets[next].scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+
+    /* ---- Rendu Mermaid (Non-bloquant) ---- */
+    setTimeout(() => {
+        try {
+            mermaid.run({ querySelector: '.mermaid' });
+        } catch (e) {
+            console.warn('Mermaid run error:', e);
+        }
+    }, 100);
+});
+</script>
+</body>
+</html>

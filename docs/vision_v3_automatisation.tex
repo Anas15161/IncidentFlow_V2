@@ -1,0 +1,109 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{enumitem}
+
+\geometry{margin=2.5cm}
+
+% Couleurs du thème
+\definecolor{primary}{RGB}{77, 124, 254} % Bleu
+\definecolor{secondary}{RGB}{45, 212, 167} % Emeraude
+
+% Formatage des titres
+\titleformat{\section}{\color{primary}\Large\bfseries}{\thesection}{1em}{}[\color{primary}\titlerule]
+\titleformat{\subsection}{\color{secondary}\large\bfseries}{\thesubsection}{1em}{}
+
+\title{\textbf{IncidentFlow V3 : Perspectives d'Évolution}\\ \Large Automatisation, Intégration n8n et Zero-Touch}
+\author{Rapport d'Architecture Détaillé}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Ce document présente la vision architecturale pour la version 3 du système IncidentFlow. Après avoir mis en place une orchestration métier robuste via Flowable BPMN et une sécurité centralisée via Keycloak (V2), la V3 se concentre sur l'automatisation des tâches (Zero-Touch) et l'intégration avec des systèmes tiers via l'outil d'automatisation n8n. Ce rapport détaille les scénarios d'usage, les modifications applicatives (Front/Back/BDD) et les ressources techniques nécessaires.
+\end{abstract}
+
+\section{1. Scénarios d'Usage : Zero-Touch vs Fallback Humain}
+L'automatisation intelligente ne remplace pas l'humain, elle agit comme un filtre puissant pour ne lui laisser que les tâches complexes ou physiques.
+
+\subsection{Scénario A : 100\% Automatisé (Zero-Touch)}
+\textbf{Cas d'usage} : Un serveur web devient soudainement inaccessible.
+\begin{itemize}
+    \item L'outil de supervision (ex: Zabbix) crée l'incident via notre API Spring Boot.
+    \item Le moteur de règles DMN (Flowable) identifie un problème technique critique.
+    \item Une \texttt{ServiceTask} transmet le payload à \textbf{n8n}.
+    \item n8n exécute un script distant (SSH / Ansible) pour redémarrer le service, et notifie le canal Slack de l'équipe d'astreinte.
+    \item Si le serveur répond à nouveau, n8n clôture l'incident dans notre base de données.
+    \item \textit{Temps de résolution : 2 secondes, sans aucune intervention humaine.}
+\end{itemize}
+
+\subsection{Scénario B : L'Exception Humaine (Fallback)}
+\textbf{Cas d'usage} : Une imprimante est cassée, ou un script d'auto-remédiation a échoué (Timeout API).
+\begin{itemize}
+    \item Le système détecte qu'une action physique ou une validation managériale est requise.
+    \item Le processus BPMN quitte la boucle d'automatisation.
+    \item Il génère automatiquement une \texttt{UserTask} assignée au bon technicien (via Keycloak) pour procéder à une réparation manuelle.
+\end{itemize}
+
+\section{2. Chantiers Techniques : Code et Base de Données}
+
+Pour supporter cette V3, plusieurs évolutions du code source sont planifiées :
+
+\subsection{Base de Données (PostgreSQL)}
+Le schéma de la table \texttt{Incident} sera enrichi avec de nouvelles métadonnées :
+\begin{itemize}[label=\textbullet]
+    \item \texttt{is\_automated (boolean)} : Flag indiquant si le ticket est géré par la machine.
+    \item \texttt{external\_ticket\_id (varchar)} : Stockage de la référence du ticket du sous-traitant (ex: JIRA-901).
+    \item Nouvelle table \texttt{N8N\_WEBHOOK\_EVENT} : Pour stocker l'historique de chaque action prise par l'IA ou les scripts externes.
+\end{itemize}
+
+\subsection{Backend (Spring Boot \& Flowable)}
+\begin{itemize}[label=\textbullet]
+    \item \textbf{Moteur DMN} : Activation du moteur de règles Flowable pour déduire la criticité.
+    \item \textbf{Nouveaux Controllers REST} : Développement d'un \texttt{WebhookController.java} protégé par API Keys pour recevoir les retours asynchrones de n8n.
+\end{itemize}
+
+\subsection{Frontend (React)}
+\begin{itemize}[label=\textbullet]
+    \item \textbf{Nouveau Dashboard de Supervision} : Une vue dédiée affichant en temps réel les incidents en cours d'auto-remédiation.
+    \item \textbf{Verrouillage} : Désactivation du bouton "Traiter" sur l'UI si \texttt{is\_automated=true} afin d'éviter qu'un humain n'interfère avec le script.
+\end{itemize}
+
+\section{3. Écosystème, Ressources et Intégrations API}
+
+L'intégration de la V3 nécessitera la mise en place de nouvelles ressources dans notre architecture Docker (ajout du conteneur \texttt{n8nio/n8n}). Voici les principales intégrations prévues :
+
+\begin{enumerate}
+    \item \textbf{Systèmes ITSM externes (La Société X)} :
+    \begin{itemize}
+        \item \textit{Outils} : Jira Service Management, ServiceNow.
+        \item \textit{Usage} : n8n utilisera les API REST de ces outils pour répliquer nos incidents dans le système d'information de notre prestataire et suivre leur résolution en temps réel.
+    \end{itemize}
+    \item \textbf{Communication et Alertes} :
+    \begin{itemize}
+        \item \textit{Outils} : Slack API, Microsoft Teams Webhooks, Serveur SMTP (Email).
+        \item \textit{Usage} : Notifications immédiates des administrateurs, avec possibilité d'inclure des "Boutons d'Action" directement dans le chat Slack pour approuver un redémarrage serveur.
+    \end{itemize}
+    \item \textbf{Infrastructure et Cloud} :
+    \begin{itemize}
+        \item \textit{Outils} : AWS EC2 API, SSH Node (n8n).
+        \item \textit{Usage} : Redémarrage automatique des instances Cloud, purge de cache ou de mémoire sans intervention humaine.
+    \end{itemize}
+\end{enumerate}
+
+\section{Conclusion et Avantages Stratégiques}
+
+En isolant toutes les communications API externes (Jira, Slack, Fournisseurs) dans n8n, nous protégeons le code source Spring Boot de l'inflation technologique. 
+La version 3 permet de transformer un simple outil de "ticketing" en une \textbf{plateforme d'hyper-automatisation ITSM} robuste. Le temps moyen de résolution (MTTR) est drastiquement réduit et l'entreprise gagne une capacité d'intégration visuelle instantanée pour de futurs partenaires.
+
+\end{document}
