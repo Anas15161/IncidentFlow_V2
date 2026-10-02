@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IncidentFlow V2 — Architecture & Intégration</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root {
+    --bg:            #08090c;
+    --bg-soft:       #0d0f14;
+    --surface:       rgba(20, 23, 30, 0.72);
+    --surface-solid: #14171e;
+
+    --border:        rgba(255, 255, 255, 0.07);
+    --border-strong: rgba(255, 255, 255, 0.13);
+
+    --text:          #e9ecf2;
+    --text-dim:      #98a0b0;
+    --text-faint:    #5a6373;
+
+    --blue:    #4d7cfe;
+    --purple:  #a06bff;
+    --emerald: #2dd4a7;
+    --amber:   #f5a524;
+
+    --radius-sm: 10px;
+    --radius:    16px;
+    --radius-lg: 22px;
+
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --font: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+::selection { background: rgba(77, 124, 254, 0.32); color: #fff; }
+
+h1, h2, h3, h4 { line-height: 1.2; letter-spacing: -0.025em; margin: 0; }
+
+code {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    background: rgba(255, 255, 255, 0.055);
+    border: 1px solid var(--border);
+    padding: 2px 6px;
+    border-radius: 6px;
+    color: #cfd7e6;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   AMBIENT BACKGROUND
+   ============================================================ */
+.ambient {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    overflow: hidden;
+    background: var(--bg);
+}
+
+.ambient::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 20%, transparent 78%);
+    -webkit-mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 20%, transparent 78%);
+}
+
+.blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.16;
+    will-change: transform;
+}
+.blob-1 { top: -18%; left: -12%; width: 48vw; height: 48vw; background: var(--blue);    animation: drift 26s var(--ease) infinite alternate; }
+.blob-2 { top: 22%;  right: -18%; width: 52vw; height: 52vw; background: var(--purple);  animation: drift 32s var(--ease) infinite alternate-reverse; }
+.blob-3 { bottom: -14%; left: 18%; width: 44vw; height: 44vw; background: var(--emerald); animation: drift 29s var(--ease) infinite alternate; animation-delay: -8s; }
+.blob-4 { top: 58%; left: -16%; width: 38vw; height: 38vw; background: var(--amber);   animation: drift 35s var(--ease) infinite alternate-reverse; animation-delay: -14s; }
+
+@keyframes drift {
+    from { transform: translate3d(0,0,0) scale(1); }
+    to   { transform: translate3d(9%, 12%, 0) scale(1.18); }
+}
+
+/* ============================================================
+   READING PROGRESS BAR
+   ============================================================ */
+.progress-track {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.05);
+    z-index: 1000;
+}
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--blue), var(--purple), var(--emerald));
+    transition: width 0.12s linear;
+    box-shadow: 0 0 14px rgba(77, 124, 254, 0.55);
+}
+
+/* ============================================================
+   TOP BAR
+   ============================================================ */
+.topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 32px;
+    pointer-events: none;
+    transition: background 0.4s var(--ease), backdrop-filter 0.4s var(--ease), border-color 0.4s var(--ease);
+    border-bottom: 1px solid transparent;
+}
+.topbar.scrolled {
+    background: rgba(8, 9, 12, 0.72);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    border-bottom-color: var(--border);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.86rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    pointer-events: auto;
+}
+.brand-mark {
+    width: 26px; height: 26px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    display: grid;
+    place-items: center;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #fff;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 6px 20px rgba(77,124,254,0.35);
+}
+.brand-sub {
+    color: #334155;
+    font-weight: 400;
+    padding-left: 10px;
+    margin-left: 4px;
+    border-left: 1px solid var(--border-strong);
+}
+
+.topbar-meta {
+    font-size: 0.74rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    font-weight: 500;
+    pointer-events: auto;
+}
+
+@media (max-width: 720px) {
+    .topbar { padding: 14px 20px; }
+    .brand-sub, .topbar-meta { display: none; }
+}
+
+/* ============================================================
+   SIDE NAVIGATION DOTS
+   ============================================================ */
+.nav-dots {
+    position: fixed;
+    right: 26px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 900;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.nav-dots a {
+    position: relative;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.16);
+    transition: all 0.35s var(--ease);
+    display: block;
+}
+.nav-dots a::after {
+    content: attr(data-label);
+    position: absolute;
+    right: 22px;
+    top: 50%;
+    transform: translateY(-50%) translateX(6px);
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s var(--ease);
+}
+.nav-dots a:hover { background: rgba(255,255,255,0.42); }
+.nav-dots a:hover::after { opacity: 1; transform: translateY(-50%) translateX(0); }
+.nav-dots a.active {
+    background: var(--accent, var(--blue));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent, var(--blue)) 18%, transparent);
+    transform: scale(1.25);
+}
+.nav-dots a.active::after { opacity: 1; transform: translateY(-50%) translateX(0); color: var(--text); }
+
+@media (max-width: 1080px) { .nav-dots { display: none; } }
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero {
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 120px 24px 90px;
+    position: relative;
+}
+
+.hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 7px 15px;
+    border: 1px solid var(--border-strong);
+    border-radius: 100px;
+    background: rgba(255, 255, 255, 0.025);
+    backdrop-filter: blur(10px);
+    margin-bottom: 30px;
+    opacity: 0;
+    animation: riseIn 0.9s var(--ease) 0.1s forwards;
+}
+.hero-eyebrow .pulse {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--emerald);
+    box-shadow: 0 0 0 0 rgba(45, 212, 167, 0.6);
+    animation: pulse 2.4s ease-out infinite;
+}
+@keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(45, 212, 167, 0.55); }
+    70%  { box-shadow: 0 0 0 9px rgba(45, 212, 167, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(45, 212, 167, 0); }
+}
+
+.hero h1 {
+    font-size: clamp(2.6rem, 7vw, 5.2rem);
+    font-weight: 800;
+    letter-spacing: -0.045em;
+    max-width: 15ch;
+    background: linear-gradient(160deg, #ffffff 12%, #b9c4dd 52%, #6d7a94 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    opacity: 0;
+    animation: riseIn 1s var(--ease) 0.22s forwards;
+}
+
+.hero h1 .accent {
+    background: linear-gradient(110deg, var(--blue), var(--purple) 55%, var(--emerald));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero-lede {
+    font-size: clamp(1rem, 1.5vw, 1.16rem);
+    color: var(--text-dim);
+    max-width: 660px;
+    margin: 26px 0 0;
+    font-weight: 300;
+    opacity: 0;
+    animation: riseIn 1s var(--ease) 0.36s forwards;
+}
+
+.hero-stats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 42px;
+    opacity: 0;
+    animation: riseIn 1s var(--ease) 0.5s forwards;
+}
+.stat-chip {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    padding: 9px 16px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.025);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s var(--ease);
+}
+.stat-chip:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+}
+.stat-chip .dot { width: 7px; height: 7px; border-radius: 50%; }
+
+.hero-scroll {
+    position: absolute;
+    bottom: 38px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    opacity: 0;
+    animation: riseIn 1s var(--ease) 0.8s forwards;
+}
+.hero-scroll .line {
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(180deg, var(--text-faint), transparent);
+    animation: scrollLine 2.2s var(--ease) infinite;
+}
+@keyframes scrollLine {
+    0%   { transform: scaleY(0); transform-origin: top; opacity: 0; }
+    45%  { transform: scaleY(1); transform-origin: top; opacity: 1; }
+    55%  { transform: scaleY(1); transform-origin: bottom; opacity: 1; }
+    100% { transform: scaleY(0); transform-origin: bottom; opacity: 0; }
+}
+
+@keyframes riseIn {
+    from { opacity: 0; transform: translateY(26px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+
+/* --- Corporate Tech Hero Animations & Shapes --- */
+.hero-grid {
+    position: absolute; inset: 0; z-index: -1;
+    background-image: 
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, transparent 100%);
+    animation: panGrid 60s linear infinite;
+}
+@keyframes panGrid { 0% { background-position: 0 0; } 100% { background-position: 0 400px; } }
+
+.glass-shape {
+    position: absolute;
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    border: 1px solid rgba(255,255,255,0.05);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: -1;
+    animation: floatShape 12s ease-in-out infinite alternate;
+}
+.shape-1 { width: 150px; height: 150px; top: 15%; left: 10%; transform: rotate(15deg); }
+.shape-2 { width: 200px; height: 200px; bottom: 20%; right: 5%; border-radius: 50%; animation-delay: -5s; }
+.shape-3 { width: 100px; height: 100px; top: 40%; left: 80%; transform: rotate(-20deg); animation-duration: 15s; }
+
+@keyframes floatShape {
+    0% { transform: translateY(0) rotate(0deg); }
+    100% { transform: translateY(-30px) rotate(10deg); }
+}
+
+.stat-chip { opacity: 0; animation: riseIn 0.8s var(--ease) forwards; }
+.chip-1 { animation-delay: 0.5s; }
+.chip-2 { animation-delay: 0.6s; }
+.chip-3 { animation-delay: 0.7s; }
+.chip-4 { animation-delay: 0.8s; }
+
+.v2-badge {
+    display: inline-block;
+    padding: 2px 12px;
+    background: rgba(96, 165, 250, 0.1);
+    color: #60a5fa;
+    border: 1px solid rgba(96, 165, 250, 0.2);
+    border-radius: 100px;
+    font-size: 0.6em;
+    vertical-align: middle;
+    margin-left: 10px;
+    box-shadow: 0 0 20px rgba(96, 165, 250, 0.1);
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.container {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 0 32px;
+}
+@media (max-width: 720px) { .container { padding: 0 20px; } }
+
+/* ============================================================
+   STEP SECTION
+   ============================================================ */
+.step {
+    --accent: var(--blue);
+    position: relative;
+    padding: 110px 0;
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.9s var(--ease), transform 0.9s var(--ease);
+}
+.step.visible { opacity: 1; transform: none; }
+
+.step + .step { border-top: 1px solid var(--border); }
+
+/* Section head */
+.step-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    margin-bottom: 56px;
+    max-width: 860px;
+}
+@media (max-width: 640px) { .step-head { flex-direction: column; gap: 18px; } }
+
+.step-index {
+    flex-shrink: 0;
+    width: 54px; height: 54px;
+    border-radius: 15px;
+    display: grid;
+    place-items: center;
+    font-size: 1.15rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    box-shadow: 0 0 34px -10px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.step-kicker {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 9px;
+}
+
+.step-title {
+    font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    color: var(--text);
+}
+
+.step-desc {
+    font-size: 1.02rem;
+    color: var(--text-dim);
+    font-weight: 300;
+    margin-top: 12px;
+    max-width: 62ch;
+}
+
+/* Two-column content */
+.step-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 28px;
+    align-items: start;
+}
+.step-grid.flip .col-card { order: 2; }
+.step-grid.flip .col-diagram { order: 1; }
+
+@media (max-width: 980px) {
+    .step-grid,
+    .step-grid.flip { grid-template-columns: 1fr; }
+    .step-grid.flip .col-card,
+    .step-grid.flip .col-diagram { order: initial; }
+}
+
+/* ============================================================
+   GLASS CARD
+   ============================================================ */
+.card {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 34px 32px;
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    box-shadow:
+        0 1px 0 0 rgba(255,255,255,0.045) inset,
+        0 24px 60px -24px rgba(0, 0, 0, 0.85);
+    overflow: hidden;
+    transition: border-color 0.4s var(--ease), transform 0.4s var(--ease), box-shadow 0.4s var(--ease);
+}
+.card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.75;
+}
+.card::after {
+    content: "";
+    position: absolute;
+    top: -60px; left: -60px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background: var(--accent);
+    filter: blur(90px);
+    opacity: 0.09;
+    pointer-events: none;
+}
+.card:hover {
+    border-color: color-mix(in srgb, var(--accent) 32%, var(--border-strong));
+    transform: translateY(-3px);
+    box-shadow:
+        0 1px 0 0 rgba(255,255,255,0.06) inset,
+        0 32px 70px -26px rgba(0, 0, 0, 0.9),
+        0 0 44px -22px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.card h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+.card h3 .icon {
+    width: 30px; height: 30px;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    font-size: 0.92rem;
+    background: color-mix(in srgb, var(--accent) 13%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+.card > p {
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    font-weight: 300;
+    margin: 0 0 4px;
+}
+.card b, .card strong { color: var(--text); font-weight: 600; }
+
+/* Detail list */
+.detail-list {
+    list-style: none;
+    padding: 0;
+    margin: 22px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.detail-list li {
+    position: relative;
+    padding-left: 26px;
+    font-size: 0.91rem;
+    font-weight: 300;
+    color: var(--text-dim);
+    line-height: 1.6;
+}
+.detail-list li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 7px; height: 7px;
+    border-radius: 2px;
+    background: var(--accent);
+    opacity: 0.85;
+    transform: rotate(45deg);
+    box-shadow: 0 0 12px -2px var(--accent);
+}
+.detail-list li b { color: var(--text); font-weight: 600; }
+
+/* Inline highlights */
+.hl { font-weight: 600; }
+.hl-blue    { color: var(--blue); }
+.hl-purple  { color: var(--purple); }
+.hl-emerald { color: var(--emerald); }
+.hl-amber   { color: var(--amber); }
+
+/* ============================================================
+   DIAGRAM PANEL
+   ============================================================ */
+.diagram {
+    position: relative;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 30px 22px 22px;
+    min-height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-in;
+    overflow: hidden;
+    transition: border-color 0.4s var(--ease), box-shadow 0.4s var(--ease);
+}
+.diagram::before { display: none; }
+.diagram:hover {
+    border-color: color-mix(in srgb, var(--accent) 30%, var(--border-strong));
+    box-shadow: 0 0 48px -20px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.diagram-label {
+    position: absolute;
+    top: 14px;
+    left: 18px;
+    font-size: 0.64rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #475569;
+    pointer-events: none;
+}
+
+.diagram-zoom {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: #475569;
+    background: rgba(0,0,0,0.05);
+    border: 1px solid var(--border);
+    padding: 5px 10px;
+    border-radius: 100px;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: all 0.3s var(--ease);
+    pointer-events: none;
+}
+.diagram:hover .diagram-zoom { opacity: 1; transform: none; }
+
+.diagram .mermaid {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+}
+.diagram .mermaid svg { max-width: 100%; height: auto; }
+
+
+
+/* ============================================================
+   LIGHTBOX
+   ============================================================ */
+.lightbox {
+    position: fixed; inset: 0; z-index: 2000;
+    display: none; align-items: center; justify-content: center;
+    padding: 5vh 4vw; background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(14px); cursor: zoom-out; opacity: 0;
+    transition: opacity 0.3s var(--ease);
+}
+.lightbox.open { display: flex; opacity: 1; }
+.lightbox-inner {
+    position: relative; max-width: 1400px; width: 100%;
+    max-height: 90vh; overflow: auto; background: #fff;
+    border: 1px solid #e2e8f0; border-radius: var(--radius-lg);
+    padding: 44px 36px; box-shadow: 0 40px 120px -30px rgba(0,0,0,0.2);
+    transform: scale(0.96); transition: transform 0.35s var(--ease);
+}
+.lightbox.open .lightbox-inner { transform: scale(1); }
+.lightbox-inner .mermaid { display: flex; justify-content: center; }
+.lightbox-inner svg { max-width: 100%; height: auto; }
+.lightbox-close {
+    position: absolute; top: 14px; right: 14px;
+    width: 34px; height: 34px; border-radius: 10px;
+    display: grid; place-items: center;
+    background: #f1f5f9; border: 1px solid #e2e8f0;
+    color: #475569; font-size: 0.9rem; cursor: pointer;
+    transition: all 0.25s var(--ease);
+}
+.lightbox-close:hover { background: #e2e8f0; color: #0f172a; }
+
+
+/* ============================================================
+   LIGHTBOX
+   ============================================================ */
+.lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 5vh 4vw;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    cursor: zoom-out;
+    opacity: 0;
+    transition: opacity 0.3s var(--ease);
+}
+.lightbox.open { display: flex; opacity: 1; }
+
+.lightbox-inner {
+    position: relative;
+    max-width: 1400px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: auto;
+    background: #ffffff;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    padding: 44px 36px;
+    box-shadow: 0 40px 120px -30px rgba(0,0,0,0.95);
+    transform: scale(0.96);
+    transition: transform 0.35s var(--ease);
+}
+.lightbox.open .lightbox-inner { transform: scale(1); }
+.lightbox-inner .mermaid { display: flex; justify-content: center; }
+.lightbox-inner svg { max-width: 100%; height: auto; }
+
+.lightbox-close {
+    position: absolute;
+    top: 14px; right: 14px;
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: #f1f5f9; color: #475569; border-color: #e2e8f0;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.25s var(--ease);
+}
+.lightbox-close:hover { background: #e2e8f0; color: #0f172a; }
+
+/* ============================================================
+   RECAP STRIP
+   ============================================================ */
+.recap {
+    padding: 100px 0 120px;
+    border-top: 1px solid var(--border);
+}
+.recap-title {
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 40px;
+}
+.recap-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+@media (max-width: 900px) { .recap-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 520px) { .recap-grid { grid-template-columns: 1fr; } }
+
+.recap-item {
+    --accent: var(--blue);
+    position: relative;
+    padding: 26px 22px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.018);
+    transition: all 0.35s var(--ease);
+}
+.recap-item:hover {
+    border-color: color-mix(in srgb, var(--accent) 34%, transparent);
+    background: color-mix(in srgb, var(--accent) 5%, rgba(255,255,255,0.018));
+    transform: translateY(-3px);
+}
+.recap-num {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 12px;
+}
+.recap-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.015em;
+    margin-bottom: 7px;
+}
+.recap-text {
+    font-size: 0.82rem;
+    font-weight: 300;
+    color: var(--text-faint);
+    line-height: 1.55;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+.footer {
+    border-top: 1px solid var(--border);
+    padding: 44px 0;
+}
+.footer-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: var(--text-faint);
+    font-weight: 300;
+}
+.footer-inner .brand { color: var(--text-dim); }
+
+/* ============================================================
+   ACCESSIBILITY / MOTION
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    .step { opacity: 1; transform: none; }
+}
+
+:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+@media print {
+    .ambient, .topbar, .nav-dots, .progress-track, .hero-scroll, .diagram-zoom { display: none !important; }
+    body { background: #fff; color: #111; }
+    .step { opacity: 1 !important; transform: none !important; page-break-inside: avoid; }
+    .card, .diagram { background: #fff !important; border-color: #ddd !important; box-shadow: none !important; }
+    .card > p, .detail-list li, .step-desc { color: #444 !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ AMBIENT BACKGROUND ============ -->
+<div class="ambient" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="blob blob-4"></div>
+</div>
+
+<!-- ============ PROGRESS BAR ============ -->
+<div class="progress-track" aria-hidden="true">
+    <div class="progress-fill" id="progressFill"></div>
+</div>
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar" id="topbar">
+    <div class="brand">
+        <span class="brand-mark">IF</span>
+        <span>IncidentFlow</span>
+        <span class="brand-sub">V2 — Architecture</span>
+    </div>
+    <div class="topbar-meta">Soutenance technique</div>
+</header>
+
+<!-- ============ SIDE NAV ============ -->
+<nav class="nav-dots" id="navDots" aria-label="Navigation des sections">
+    <a href="#hero"      data-label="Introduction"      data-target="hero"      aria-label="Introduction"></a>
+    <a href="#step-1"    data-label="Authentification"  data-target="step-1"    style="--accent:#f5a524" aria-label="Étape 1"></a>
+    <a href="#step-2"    data-label="Utilisateurs & Rôles" data-target="step-2" style="--accent:#a06bff" aria-label="Étape 2"></a>
+    <a href="#step-3"    data-label="Création d'incident" data-target="step-3"  style="--accent:#4d7cfe" aria-label="Étape 3"></a>
+    <a href="#step-4"    data-label="Moteur BPMN"        data-target="step-4"    style="--accent:#2dd4a7" aria-label="Étape 4"></a>
+    <a href="#recap"     data-label="Récapitulatif"      data-target="recap"     aria-label="Récapitulatif"></a>
+</nav>
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="hero" style="padding: 140px 24px 80px; position: relative; overflow: hidden;">
+    <!-- Abstract Tech Shapes -->
+    <div class="hero-grid"></div>
+    <div class="glass-shape shape-1"></div>
+    <div class="glass-shape shape-2"></div>
+    <div class="glass-shape shape-3"></div>
+
+    <div class="hero-eyebrow" style="border-radius: 4px; border-color: rgba(255,255,255,0.15); letter-spacing: 0.1em; color: #a1a1aa; background: transparent;">
+        Rapport d'Architecture Logicielle
+    </div>
+
+    <h1 style="background: none; -webkit-text-fill-color: #ffffff; color: #ffffff; font-weight: 700; letter-spacing: -0.02em; font-size: clamp(2.2rem, 5vw, 4rem); max-width: 100%; position: relative;">
+        IncidentFlow <span class="v2-badge">V2</span>
+    </h1>
+    
+    <h2 style="font-size: clamp(1.4rem, 2.5vw, 2rem); font-weight: 400; color: #94a3b8; margin-top: 5px; letter-spacing: -0.01em; opacity: 0; animation: riseIn 1s var(--ease) 0.3s forwards;">
+        Architecture &amp; Intégration
+    </h2>
+
+    <p class="hero-lede" style="color: #64748b; line-height: 1.7; font-size: 1.1rem; max-width: 700px; position: relative; z-index: 2;">
+        Le cycle de vie complet de l'information au sein du SI —
+        de l'authentification centralisée sécurisée (Keycloak) jusqu'à l'orchestration
+        dynamique des processus métier (Flowable BPMN).
+    </p>
+
+    <div class="hero-stats" style="margin-top: 40px; gap: 15px; position: relative; z-index: 2;">
+        <div class="stat-chip chip-1" style="background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); padding: 12px 20px;">
+            <svg style="width: 16px; height: 16px; margin-right: 8px; vertical-align: text-bottom; color: #a1a1aa;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            Infrastructure React
+        </div>
+        <div class="stat-chip chip-2" style="background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); padding: 12px 20px;">
+            <svg style="width: 16px; height: 16px; margin-right: 8px; vertical-align: text-bottom; color: #a1a1aa;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>
+            Micro-service Spring
+        </div>
+        <div class="stat-chip chip-3" style="background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); padding: 12px 20px;">
+            <svg style="width: 16px; height: 16px; margin-right: 8px; vertical-align: text-bottom; color: #a1a1aa;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+            Shadow User
+        </div>
+        <div class="stat-chip chip-4" style="background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); padding: 12px 20px;">
+            <svg style="width: 16px; height: 16px; margin-right: 8px; vertical-align: text-bottom; color: #a1a1aa;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+            Moteur BPMN
+        </div>
+    </div>
+
+    <div class="hero-scroll" style="bottom: 20px;">
+        <span style="color: #64748b;">Découvrir l'architecture</span>
+        <span class="line" style="background: linear-gradient(180deg, #475569, transparent);"></span>
+    </div>
+</section>
+
+<!-- ============ MAIN ============ -->
+<main class="container">
+
+    <!-- ---------- ÉTAPE 1 ---------- -->
+    <section class="step" id="step-1" style="--accent: var(--amber)">
+        <div class="step-head">
+            <div class="step-index">01</div>
+            <div>
+                <div class="step-kicker">Étape 1 — Sécurité</div>
+                <h2 class="step-title">La porte d'entrée : Keycloak &amp; authentification</h2>
+                <p class="step-desc">
+                    Tout commence par l'authentification. Comment le système garantit-il qu'un
+                    utilisateur est légitime avant même qu'il n'accède aux données ?
+                </p>
+            </div>
+        </div>
+
+        <div class="step-grid">
+            <div class="col-card">
+                <div class="card">
+                    <h3><span class="icon">🔐</span> Le mécanisme OAuth2</h3>
+                    <p>
+                        L'application ne gère <b>aucun mot de passe</b> en interne.
+                        Cette responsabilité est entièrement déléguée au serveur
+                        <span class="hl hl-amber">Keycloak</span>.
+                    </p>
+                    <ul class="detail-list">
+                        <li>
+                            <b>Le frontend React</b> affiche le formulaire de connexion,
+                            mais transmet les identifiants directement à Keycloak.
+                        </li>
+                        <li>
+                            <b>La validation :</b> Keycloak vérifie les identifiants dans
+                            sa base sécurisée, puis fabrique un passeport inviolable —
+                            le <span class="hl hl-amber">jeton JWT</span>.
+                        </li>
+                        <li>
+                            <b>Le filtre Spring Security :</b> à chaque requête, React
+                            joint ce JWT. Spring vérifie la signature cryptographique.
+                            Si le jeton a été altéré, la requête est rejetée (HTTP 401).
+                        </li>
+                        <li>
+                            <b>L'avantage :</b> pour ajouter une connexion Google ou
+                            Microsoft demain, il suffit de configurer Keycloak.
+                            Le code React et Java ne change <b>jamais</b>.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-diagram">
+                <figure class="diagram" data-diagram>
+                    <figcaption class="diagram-label">Flux d'authentification</figcaption>
+                    <span class="diagram-zoom">⤢ Agrandir</span>
+                    <div class="mermaid">
+                    sequenceDiagram
+                        participant React as Interface React
+                        participant Keycloak as Serveur Keycloak
+                        participant Spring as Backend Spring Boot
+
+                        React->>Keycloak: POST /token (Email + Mot de Passe)
+                        Keycloak-->>React: Retourne JWT (Access Token)
+                        React->>Spring: GET /api/users/me (Bearer JWT)
+                        Note over Spring: Validation de la<br/>signature du JWT
+                        Spring-->>React: 200 OK — Profil utilisateur
+                    </div>
+                </figure>
+            </div>
+        </div>
+    </section>
+
+    <!-- ---------- ÉTAPE 2 ---------- -->
+    <section class="step" id="step-2" style="--accent: var(--purple)">
+        <div class="step-head">
+            <div class="step-index">02</div>
+            <div>
+                <div class="step-kicker">Étape 2 — Identités</div>
+                <h2 class="step-title">L'écosystème des rôles — Shadow User</h2>
+                <p class="step-desc">
+                    Gérer les utilisateurs dans deux bases distinctes (locale et Keycloak)
+                    sans jamais les désynchroniser.
+                </p>
+            </div>
+        </div>
+
+        <div class="step-grid flip">
+            <div class="col-card">
+                <div class="card">
+                    <h3><span class="icon">👥</span> Le pattern « Shadow User »</h3>
+                    <p>
+                        Pour lier un ticket à un auteur, l'utilisateur doit exister dans la base
+                        <span class="hl hl-purple">PostgreSQL</span> locale. Mais pour se connecter,
+                        il doit exister dans <span class="hl hl-amber">Keycloak</span>.
+                    </p>
+                    <ul class="detail-list">
+                        <li>
+                            <b>Création centralisée :</b> l'administrateur clique sur
+                            « Créer un utilisateur » depuis l'interface React.
+                        </li>
+                        <li>
+                            <b>Double sauvegarde :</b> le service <code>UserService.java</code>
+                            persiste l'utilisateur dans PostgreSQL, puis utilise un client REST
+                            (<i>KeycloakAdminClient</i>) pour l'injecter dans Keycloak.
+                        </li>
+                        <li>
+                            <b>Le rôle comme attribut :</b> le backend injecte le rôle local
+                            (ex. « Résolveur ») en tant qu'<span class="hl hl-purple">attribut
+                            utilisateur</span> directement dans Keycloak.
+                        </li>
+                        <li>
+                            <b>La matrice des permissions :</b> à la connexion, le backend lit
+                            ce rôle et retourne au frontend une <i>matrice RBAC</i> —
+                            qui a le droit de faire quoi.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-diagram">
+                <figure class="diagram" data-diagram>
+                    <figcaption class="diagram-label">Synchronisation des identités</figcaption>
+                    <span class="diagram-zoom">⤢ Agrandir</span>
+                    <div class="mermaid">
+                    flowchart TD
+                        Admin["Admin (React)"] -->|Création utilisateur| API["UserService (Spring Boot)"]
+                        API -->|1. Sauvegarde locale| DB[("PostgreSQL<br/>table: users")]
+                        API -->|2. API REST Admin-CLI| KC["Keycloak<br/>(base distante)"]
+                        KC -.->|Attribut custom injecté| Attr["Role : Résolveur"]
+
+                        style API fill:#a06bff,stroke:#c39bff,color:#fff
+                        style KC fill:#f5a524,stroke:#ffc75e,color:#1a1206
+                    </div>
+                </figure>
+            </div>
+        </div>
+    </section>
+
+    <!-- ---------- ÉTAPE 3 ---------- -->
+    <section class="step" id="step-3" style="--accent: var(--blue)">
+        <div class="step-head">
+            <div class="step-index">03</div>
+            <div>
+                <div class="step-kicker">Étape 3 — Données</div>
+                <h2 class="step-title">La naissance d'un incident</h2>
+                <p class="step-desc">
+                    De la saisie du formulaire jusqu'à la persistance en base,
+                    et le couplage avec le moteur de workflow.
+                </p>
+            </div>
+        </div>
+
+        <div class="step-grid">
+            <div class="col-card">
+                <div class="card">
+                    <h3><span class="icon">🗂️</span> Persistance &amp; couplage</h3>
+                    <p>
+                        Créer un incident ne se résume pas à un simple <code>INSERT</code>.
+                        C'est l'étincelle qui allume le moteur de workflow.
+                    </p>
+                    <ul class="detail-list">
+                        <li>
+                            <b>La réception :</b> le contrôleur Java reçoit l'objet
+                            (titre, description, priorité) ainsi que l'email du créateur,
+                            extrait du JWT.
+                        </li>
+                        <li>
+                            <b>Sauvegarde physique :</b> l'objet <code>Incident</code> est
+                            traduit en SQL par <i>Hibernate (JPA)</i> et inséré dans PostgreSQL.
+                            Il reçoit alors un identifiant unique (ex. <code>INC-2026-001</code>).
+                        </li>
+                        <li>
+                            <b>Le couplage :</b> immédiatement après, le service appelle
+                            Flowable (étape 4). Le moteur génère un
+                            <code>processInstanceId</code>, que le backend persiste
+                            dans la table Incident.
+                            <b>La donnée physique est désormais couplée à sa logique métier.</b>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-diagram">
+                <figure class="diagram" data-diagram>
+                    <figcaption class="diagram-label">Cycle de création</figcaption>
+                    <span class="diagram-zoom">⤢ Agrandir</span>
+                    <div class="mermaid">
+                    flowchart LR
+                        A["React Form"] -->|"POST JSON"| B["IncidentController"]
+                        B --> C["IncidentService"]
+                        C -->|"save()"| D[("PostgreSQL BDD")]
+                        D -.->|"Génère ID"| C
+                        C -->|"startProcess()"| E["Moteur Flowable"]
+                        E -.->|"Retourne ProcessID"| C
+                        C -->|"Mise à jour ProcessID"| D
+
+                        style E fill:#4d7cfe,stroke:#82a3ff,color:#fff
+                    </div>
+                </figure>
+            </div>
+        </div>
+    </section>
+
+    <!-- ---------- ÉTAPE 4 ---------- -->
+    <section class="step" id="step-4" style="--accent: var(--emerald)">
+        <div class="step-head">
+            <div class="step-index">04</div>
+            <div>
+                <div class="step-kicker">Étape 4 — Orchestration</div>
+                <h2 class="step-title">Le moteur Flowable &amp; le XML BPMN</h2>
+                <p class="step-desc">
+                    Comment un simple fichier XML dicte le comportement de toute l'application.
+                </p>
+            </div>
+        </div>
+
+        <div class="step-grid flip">
+            <div class="col-card">
+                <div class="card">
+                    <h3><span class="icon">⚙️</span> L'interpréteur de XML</h3>
+                    <p>
+                        Le fichier <code>incident_workflow_v2.bpmn20.xml</code> n'est pas
+                        qu'un dessin : c'est du code exécutable. Le moteur
+                        <span class="hl hl-emerald">Flowable</span>, intégré à Spring Boot,
+                        le lit au démarrage.
+                    </p>
+                    <ul class="detail-list">
+                        <li>
+                            <b>L'avancée pas-à-pas :</b> à la création de l'incident, Flowable
+                            positionne un « pion » sur la case <i>Départ</i>. Le pion avance
+                            et s'arrête sur une balise <code>&lt;userTask&gt;</code> —
+                            une tâche humaine.
+                        </li>
+                        <li>
+                            <b>L'attente :</b> le ticket passe en statut « Nouveau ». Flowable
+                            met le processus en pause et l'enregistre dans ses propres tables
+                            (<i>ACT_RU_TASK</i>).
+                        </li>
+                        <li>
+                            <b>L'action humaine :</b> un technicien clique sur « Résoudre ».
+                            Le backend récupère la tâche en attente et appelle
+                            <code>taskService.complete(taskId)</code>.
+                        </li>
+                        <li>
+                            <b>L'automatisme :</b> en recevant « Complete », Flowable réveille
+                            le pion, lit la flèche suivante dans le XML, exécute éventuellement
+                            un script Java, puis s'arrête sur la tâche suivante.
+                            La boucle est bouclée.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-diagram">
+                <figure class="diagram" data-diagram>
+                    <figcaption class="diagram-label">Exécution d'une tâche</figcaption>
+                    <span class="diagram-zoom">⤢ Agrandir</span>
+                    <div class="mermaid">
+                    sequenceDiagram
+                        participant React as Interface React
+                        participant Spring as Backend Java
+                        participant Flowable as Moteur Flowable (XML)
+
+                        React->>Spring: Clic sur « Résoudre » (Incident X)
+                        Spring->>Flowable: Recherche de la tâche active
+                        Flowable-->>Spring: Tâche trouvée (ID: 998)
+                        Spring->>Flowable: taskService.complete(998)
+                        Note over Flowable: Lecture du XML,<br/>suivi de la flèche « Résoudre »,<br/>arrivée sur l'état « Clôturé »
+                        Flowable-->>Spring: Processus avancé avec succès
+                        Spring->>React: Affichage mis à jour en « Résolu »
+                    </div>
+                </figure>
+            </div>
+        </div>
+    </section>
+
+    <!-- ---------- RÉCAPITULATIF ---------- -->
+    <section class="recap" id="recap">
+        <div class="recap-title">Le parcours en un coup d'œil</div>
+        <div class="recap-grid">
+            <div class="recap-item" style="--accent: var(--amber)">
+                <div class="recap-num">01</div>
+                <div class="recap-name">Authentification</div>
+                <div class="recap-text">Keycloak délivre un JWT, Spring Security le valide à chaque requête.</div>
+            </div>
+            <div class="recap-item" style="--accent: var(--purple)">
+                <div class="recap-num">02</div>
+                <div class="recap-name">Identités</div>
+                <div class="recap-text">Double écriture PostgreSQL + Keycloak, rôle injecté en attribut.</div>
+            </div>
+            <div class="recap-item" style="--accent: var(--blue)">
+                <div class="recap-num">03</div>
+                <div class="recap-name">Incident</div>
+                <div class="recap-text">Persistance JPA puis couplage immédiat avec une instance de processus.</div>
+            </div>
+            <div class="recap-item" style="--accent: var(--emerald)">
+                <div class="recap-num">04</div>
+                <div class="recap-name">Workflow</div>
+                <div class="recap-text">Flowable interprète le BPMN et fait avancer le processus à chaque action.</div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+    <div class="container footer-inner">
+        <div class="brand">
+            <span class="brand-mark">IF</span>
+            <span>IncidentFlow V2</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div style="display: flex; flex-direction: column; text-align: right;">
+                <span style="font-weight: 600; color: var(--text); font-size: 0.9rem;">Présenté par Anas</span>
+                <span style="letter-spacing: 0.05em;">École Marocaine d'Ingénierie</span>
+            </div>
+            <img src="logo_02.png" alt="Logo EMI" style="height: 45px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); background: rgba(255,255,255,0.1); padding: 5px; border-radius: 8px; border: 1px solid var(--border);">
+        </div>
+    </div>
+</footer>
+
+<!-- ============ LIGHTBOX ============ -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Diagramme agrandi">
+    <div class="lightbox-inner">
+        <button class="lightbox-close" id="lightboxClose" aria-label="Fermer">✕</button>
+        <div class="lightbox-body" id="lightboxBody"></div>
+    </div>
+</div>
+
+<!-- ============ MERMAID ============ -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+/* ------------------------------------------------------------------
+   1. MERMAID — thème sombre sur mesure
+------------------------------------------------------------------ */
+mermaid.initialize({
+    startOnLoad: false,
+    theme: 'default',
+    securityLevel: 'loose',
+    fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif"
+});/* Corrige une éventuelle couleur invalide (sécurité) */
+mermaid.initialize({
+    startOnLoad: false,
+    theme: 'default',
+    securityLevel: 'loose',
+    fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif"
+});/* ------------------------------------------------------------------
+   2. RENDU + INTERACTIONS
+------------------------------------------------------------------ */
+document.addEventListener('DOMContentLoaded', () => {
+
+    /* ---- Navigation active (Moved UP) ---- */
+    const dots = Array.from(document.querySelectorAll('.nav-dots a'));
+    const targets = ['hero', 'step-1', 'step-2', 'step-3', 'step-4', 'recap']
+        .map(id => document.getElementById(id))
+        .filter(Boolean);
+
+    function updateActiveDot() {
+        if (!targets.length) return;
+        const mid = window.innerHeight * 0.42;
+        let current = targets[0];
+        targets.forEach(t => {
+            const r = t.getBoundingClientRect();
+            if (r.top <= mid) current = t;
+        });
+        dots.forEach(d => {
+            d.classList.toggle('active', d.dataset.target === current.id);
+        });
+    }
+
+    /* ---- Barre de progression ---- */
+    const progressFill = document.getElementById('progressFill');
+    const topbar       = document.getElementById('topbar');
+
+    const onScroll = () => {
+        const h = document.documentElement;
+        const max = h.scrollHeight - h.clientHeight;
+        const pct = max > 0 ? (h.scrollTop / max) * 100 : 0;
+        if(progressFill) progressFill.style.width = pct + '%';
+        if(topbar) topbar.classList.toggle('scrolled', h.scrollTop > 40);
+        updateActiveDot();
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    /* ---- Apparition des sections ---- */
+    const steps = document.querySelectorAll('.step');
+    const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                revealObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+
+    steps.forEach(s => revealObserver.observe(s));
+
+    /* ---- Lightbox pour les diagrammes ---- */
+    const lightbox = document.getElementById('lightbox');
+    const lightboxBody = document.getElementById('lightboxBody');
+    const lightboxClose = document.getElementById('lightboxClose');
+
+    function openLightbox(sourceEl) {
+        const svg = sourceEl.querySelector('svg');
+        if (!svg) return;
+        lightboxBody.innerHTML = '';
+        const clone = svg.cloneNode(true);
+        clone.removeAttribute('width');
+        clone.removeAttribute('height');
+        clone.style.width = '100%';
+        clone.style.height = 'auto';
+        lightboxBody.appendChild(clone);
+        lightbox.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+        lightbox.classList.remove('open');
+        document.body.style.overflow = '';
+        setTimeout(() => { lightboxBody.innerHTML = ''; }, 300);
+    }
+
+    document.querySelectorAll('[data-diagram]').forEach(fig => {
+        fig.addEventListener('click', () => openLightbox(fig));
+        fig.style.cursor = 'zoom-in';
+    });
+
+    if(lightboxClose) lightboxClose.addEventListener('click', (e) => { e.stopPropagation(); closeLightbox(); });
+    if(lightbox) lightbox.addEventListener('click', (e) => {
+        if (e.target === lightbox || e.target.classList.contains('lightbox-body') || e.target.closest('.lightbox-inner') === null) {
+            closeLightbox();
+        }
+    });
+    
+    /* ---- Navigation clavier entre sections (← / →) ---- */
+    document.addEventListener('keydown', (e) => {
+        if (typeof lightbox !== 'undefined' && lightbox && lightbox.classList.contains('open')) {
+            if (e.key === 'Escape') closeLightbox();
+            return;
+        }
+        if (e.target.matches('input, textarea, select')) return;
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+
+        const mid = window.innerHeight * 0.42;
+        let idx = 0;
+        targets.forEach((t, i) => {
+            if (t.getBoundingClientRect().top <= mid) idx = i;
+        });
+        const next = e.key === 'ArrowRight'
+            ? Math.min(idx + 1, targets.length - 1)
+            : Math.max(idx - 1, 0);
+        
+        if (targets[next]) {
+            targets[next].scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+
+    /* ---- Rendu Mermaid (Non-bloquant) ---- */
+    setTimeout(() => {
+        try {
+            mermaid.run({ querySelector: '.mermaid' });
+        } catch (e) {
+            console.warn('Mermaid run error:', e);
+        }
+    }, 100);
+});
+</script>
+</body>
+</html>

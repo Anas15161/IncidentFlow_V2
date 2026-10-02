@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide d'Architecture Ultime - IncidentFlow V2</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Mermaid.js for Diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+    (function () {
+        if (typeof mermaid === 'undefined') return;
+        var cfg = {
+            startOnLoad: false, theme: 'base', securityLevel: 'loose',
+            fontFamily: "'Inter','Segoe UI',sans-serif",
+            themeVariables: {
+                darkMode: true, background: 'transparent',
+                primaryColor: '#1b2136', primaryTextColor: '#e9ecf2', primaryBorderColor: '#4d7cfe',
+                secondaryColor: '#16302b', tertiaryColor: '#141822', lineColor: '#7f8ba3', textColor: '#e9ecf2',
+                actorBkg: '#1b2136', actorBorder: '#4d7cfe', actorTextColor: '#e9ecf2', actorLineColor: '#3a4460',
+                signalColor: '#98a0b0', signalTextColor: '#e9ecf2',
+                noteBkgColor: '#2b2314', noteTextColor: '#f5c76a', noteBorderColor: '#f5a524',
+                edgeLabelBackground: '#141822', clusterBkg: '#12151c', clusterBorder: '#3a4460'
+            }
+        };
+        try { mermaid.initialize(cfg); }
+        catch (e) { try { mermaid.initialize({ startOnLoad: false, theme: 'dark' }); } catch (e2) {} }
+    })();
+    </script>
+
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --accent-keycloak: #f59e0b;
+            --accent-flowable: #10b981;
+            --border: #334155;
+        }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 320px;
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-header {
+            padding: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            border-bottom: 1px solid var(--border);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .nav-btn {
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            text-align: left;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 4px solid transparent;
+        }
+        .nav-btn:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: var(--text-main);
+        }
+        .nav-btn.active {
+            background-color: rgba(59, 130, 246, 0.15);
+            color: var(--primary);
+            border-left-color: var(--primary);
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px;
+            scroll-behavior: smooth;
+        }
+        .section {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+        .section.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        h1 { font-size: 32px; margin-top: 0; margin-bottom: 10px; }
+        h2 { font-size: 24px; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-top: 40px; }
+        p { line-height: 1.6; color: var(--text-muted); font-size: 16px; }
+        
+        /* Interactive Folder Tree */
+        .tree-container {
+            background-color: var(--bg-card);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .tree-node {
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+        .tree-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+        .tree-item:hover { background-color: rgba(255,255,255,0.05); }
+        .tree-item.folder { font-weight: bold; color: #e2e8f0; }
+        .tree-item.file { color: var(--text-muted); }
+        .tree-item.file.important { color: var(--primary); font-weight: 500; }
+        .tree-children { display: none; border-left: 1px dashed var(--border); margin-left: 16px; }
+        .tree-children.open { display: block; }
+        .icon { font-size: 16px; }
+        
+        /* Info Panel */
+        .info-panel {
+            background-color: rgba(59, 130, 246, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .info-panel h3 { margin-top: 0; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        
+        /* Code Snippets */
+        pre {
+            background-color: #0b1120;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 15px;
+            overflow-x: auto;
+            font-size: 13px;
+            color: #e2e8f0; /* default text */
+            font-family: 'Consolas', 'Courier New', monospace;
+            line-height: 1.5;
+        }
+        .code-comment { color: #64748b; font-style: italic; }
+        .code-keyword { color: #c678dd; }
+        .code-string { color: #98c379; }
+        .code-function { color: #61afef; }
+        .code-class { color: #e5c07b; }
+        .code-annotation { color: #d19a66; }
+        
+        /* Data Flow Diagrams */
+        .flow-container { display: flex; flex-direction: column; gap: 20px; margin-top: 30px; }
+        .flow-step { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; position: relative; }
+        .flow-step::after { content: "↓"; position: absolute; bottom: -22px; left: 50%; font-size: 20px; color: var(--primary); }
+        .flow-step:last-child::after { display: none; }
+        .flow-step h3 { margin-top: 0; display: flex; align-items: center; gap: 10px; }
+        
+        .badge-kc { background: rgba(245, 158, 11, 0.2); color: var(--accent-keycloak); padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .badge-flow { background: rgba(16, 185, 129, 0.2); color: var(--accent-flowable); padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .badge-react { background: rgba(59, 130, 246, 0.2); color: var(--primary); padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .badge-spring { background: rgba(220, 38, 38, 0.2); color: #ef4444; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        
+        /* File Cards */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 20px; margin-top: 20px; }
+        .card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; transition: transform 0.2s; }
+        .card:hover { transform: translateY(-5px); border-color: var(--primary); }
+        .card h4 { margin-top: 0; color: #e2e8f0; font-family: monospace; font-size: 16px; margin-bottom: 8px; }
+        
+        /* Diagram Container */
+        .diagram-box { background-color: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 20px; margin-top: 20px; text-align: center; }
+
+        /* ============ ENHANCEMENT LAYER ============ */
+        :root{--bg-dark:#08090c;--bg-card:#12151c;--border:rgba(255,255,255,.08);--primary:#4d7cfe;--purple:#a06bff;--accent-keycloak:#f5a524;--accent-flowable:#2dd4a7;--text-muted:#98a0b0;--ease:cubic-bezier(.22,1,.36,1);--mono:'JetBrains Mono',Consolas,monospace}
+        body{font-family:'Inter','Segoe UI',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+        body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(45vw 45vw at 8% -5%,rgba(77,124,254,.2),transparent 60%),radial-gradient(40vw 40vw at 100% 30%,rgba(160,107,255,.16),transparent 60%),radial-gradient(38vw 38vw at 40% 112%,rgba(45,212,167,.13),transparent 60%),radial-gradient(520px circle at var(--mx,60%) var(--my,20%),rgba(125,145,255,.09),transparent 60%)}
+        ::selection{background:rgba(77,124,254,.35);color:#fff}
+
+        /* Sidebar */
+        .sidebar{width:300px;flex-shrink:0;background:linear-gradient(180deg,rgba(20,24,34,.85),rgba(11,13,19,.92));backdrop-filter:blur(18px);border-right:1px solid var(--border)}
+        .sidebar-header{padding:24px 22px;margin-bottom:12px;font-size:17px;font-weight:700;letter-spacing:-.02em;color:#fff;border-bottom:1px solid var(--border)}
+        .sidebar-header span{width:34px;height:34px;display:grid;place-items:center;border-radius:11px;background:linear-gradient(135deg,var(--primary),var(--purple));box-shadow:0 8px 24px -6px rgba(77,124,254,.65)}
+        .sidebar-header::after{content:"GUIDE";margin-left:auto;font:600 9.5px var(--mono);letter-spacing:.16em;color:var(--primary);border:1px solid rgba(77,124,254,.35);padding:3px 8px;border-radius:99px}
+        .nav-btn{position:relative;margin:2px 12px;padding:13px 16px;border-radius:12px;border-left:0;transition:all .3s var(--ease)}
+        .nav-btn::before{content:"";position:absolute;left:0;top:24%;bottom:24%;width:3px;border-radius:3px;background:var(--primary);transform:scaleY(0);transition:transform .35s var(--ease)}
+        .nav-btn:hover{transform:translateX(3px)}
+        .nav-btn.active{color:#fff;background:linear-gradient(90deg,rgba(77,124,254,.2),rgba(160,107,255,.05))}
+        .nav-btn.active::before{transform:scaleY(1);box-shadow:0 0 14px var(--primary)}
+        .hint{margin:auto 22px 0;padding-top:14px;font:400 11px var(--mono);color:#5a6373;letter-spacing:.04em}
+        .prog{position:fixed;top:0;left:300px;right:0;height:3px;z-index:50;transform-origin:left;transform:scaleX(0);background:linear-gradient(90deg,var(--primary),var(--purple),var(--accent-flowable));box-shadow:0 0 14px rgba(77,124,254,.55)}
+
+        /* Contenu */
+        .main-content{padding:56px clamp(24px,5vw,72px);scrollbar-width:thin;scrollbar-color:#2a3142 transparent}
+        .main-content>.section{max-width:1080px;margin:0 auto}
+        .section{animation:secIn .65s var(--ease)}
+        @keyframes secIn{from{opacity:0;transform:translateY(18px);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+        h1{font-size:clamp(28px,3.4vw,42px);font-weight:800;letter-spacing:-.04em;line-height:1.15;background:linear-gradient(120deg,#fff 30%,#9db4ff 68%,#c9a7ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+        h2{display:flex;align-items:center;gap:12px;margin-top:52px;font-size:20px;font-weight:700;letter-spacing:-.02em;color:#fff;border-bottom:0}
+        h2::before{content:"";width:9px;height:9px;border-radius:2px;rotate:45deg;background:var(--primary);box-shadow:0 0 14px var(--primary)}
+        h2::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,.14),transparent)}
+        p{font-weight:300}
+        p code,.flow-step code{font-family:var(--mono);font-size:.85em;background:rgba(77,124,254,.1);border:1px solid rgba(77,124,254,.24);color:#a9c0ff;padding:2px 7px;border-radius:6px}
+
+        /* Carte du système animée */
+        .cmap-wrap{position:relative;margin-top:30px;padding:26px 18px 14px;border-radius:20px;border:1px solid var(--border);background:linear-gradient(160deg,rgba(24,28,42,.9),rgba(11,13,19,.95));box-shadow:0 30px 70px -36px #000;overflow:hidden}
+        .cmap-wrap::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1px);background-size:18px 18px;-webkit-mask-image:radial-gradient(ellipse at center,#000 25%,transparent 78%);mask-image:radial-gradient(ellipse at center,#000 25%,transparent 78%)}
+        .cmap-cap{position:absolute;top:14px;left:20px;font:600 10px var(--mono);letter-spacing:.18em;color:var(--primary);text-transform:uppercase}
+        .cmap{position:relative;width:100%;height:auto;display:block}
+        .cmap rect{fill:color-mix(in srgb,var(--c) 15%,#10131a);stroke:var(--c);stroke-opacity:.65;transition:all .3s}
+        .cmap g.node:hover rect{stroke-opacity:1;filter:drop-shadow(0 0 12px var(--c))}
+        .cmap text.n{font:700 13px 'Inter',sans-serif;fill:#e9ecf2;text-anchor:middle}
+        .cmap text.s{font:400 10px var(--mono);fill:#98a0b0;text-anchor:middle}
+        .cmap .edge{fill:none;stroke:rgba(255,255,255,.2);stroke-width:1.5;stroke-dasharray:4 5;animation:dash 1.6s linear infinite}
+        .cmap .pulse{fill:#fff;filter:drop-shadow(0 0 5px #9db4ff)}
+        @keyframes dash{to{stroke-dashoffset:-18}}
+
+        /* Cartes piliers */
+        .grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+        .card{--a:var(--primary);position:relative;overflow:hidden;padding:26px;border-radius:18px;background:linear-gradient(160deg,rgba(28,33,46,.7),rgba(15,18,26,.8));transition:all .4s var(--ease)}
+        .card:nth-child(2){--a:#ef4444}.card:nth-child(3){--a:var(--accent-flowable)}.card:nth-child(4){--a:var(--accent-keycloak)}
+        .card::before{content:"";position:absolute;left:0;top:0;right:0;height:2px;background:linear-gradient(90deg,var(--a),transparent)}
+        .card::after{content:"";position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .4s;background:radial-gradient(360px circle at var(--x,50%) var(--y,0%),color-mix(in srgb,var(--a) 20%,transparent),transparent 60%)}
+        .card:hover{border-color:color-mix(in srgb,var(--a) 50%,transparent);box-shadow:0 26px 60px -28px var(--a)}
+        .card:hover::after{opacity:1}
+        .card h3{margin-top:0;letter-spacing:-.02em}
+
+        /* Diagrammes */
+        .diagram-box{position:relative;overflow:auto;padding:30px 20px;border-radius:20px;border-color:var(--border);background:linear-gradient(160deg,rgba(24,28,42,.9),rgba(11,13,19,.95));box-shadow:0 30px 70px -36px #000}
+        .diagram-box::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1px);background-size:18px 18px;-webkit-mask-image:radial-gradient(ellipse at center,#000 25%,transparent 78%);mask-image:radial-gradient(ellipse at center,#000 25%,transparent 78%)}
+        .diagram-box .mermaid{position:relative}
+
+        /* Explorateur */
+        .tree-container{border-radius:18px;background:rgba(15,18,26,.7);backdrop-filter:blur(14px);font-family:var(--mono);scrollbar-width:thin;scrollbar-color:#2a3142 transparent}
+        .tree-item{font-size:12.5px;border-radius:8px;transition:all .25s var(--ease)}
+        .tree-item.file.important:hover{background:rgba(77,124,254,.14);transform:translateX(3px)}
+        .tree-item.selected{color:#fff!important;background:linear-gradient(90deg,rgba(77,124,254,.3),rgba(160,107,255,.08));box-shadow:inset 2px 0 0 var(--primary)}
+        .tree-children{border-left:1px dashed rgba(255,255,255,.12)}
+        .info-panel{padding:26px;border-radius:18px;background:linear-gradient(160deg,rgba(28,33,46,.7),rgba(12,14,20,.85));backdrop-filter:blur(16px);box-shadow:0 30px 70px -34px #000}
+        .info-panel.flash{animation:secIn .5s var(--ease)}
+        .info-panel h3{font-family:var(--mono);font-size:16px;color:#fff;border-bottom-color:var(--border)}
+        #info-code-container{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:12px;background:#070a10}
+        #info-code-container::before{content:"";display:block;height:34px;border-bottom:1px solid var(--border);background:radial-gradient(circle at 18px 17px,#ff5f57 4.5px,transparent 5px),radial-gradient(circle at 36px 17px,#febc2e 4.5px,transparent 5px),radial-gradient(circle at 54px 17px,#28c840 4.5px,transparent 5px),rgba(255,255,255,.03)}
+        #info-code-container pre{margin:0;padding:18px 20px;border:0;border-radius:0;background:transparent;font-family:var(--mono);font-size:12.5px;line-height:1.7}
+        .copy-btn{position:absolute;top:5px;right:10px;font:500 11px var(--mono);color:var(--text-muted);background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:99px;padding:4px 12px;cursor:pointer;transition:all .25s}
+        .copy-btn:hover{color:#fff;border-color:var(--primary)}
+
+        /* Flux en timeline */
+        .flow-container{position:relative;gap:22px;padding-left:54px}
+        .flow-container::before{content:"";position:absolute;left:19px;top:14px;bottom:14px;width:2px;border-radius:2px;opacity:.5;background:linear-gradient(180deg,var(--primary),var(--purple),var(--accent-flowable))}
+        .flow-step{--n:var(--primary);padding:22px 26px;border-radius:16px;background:linear-gradient(160deg,rgba(28,33,46,.6),rgba(15,18,26,.75));transition:all .4s var(--ease)}
+        .flow-step:nth-child(2){--n:var(--purple)}.flow-step:nth-child(3){--n:var(--accent-keycloak)}.flow-step:nth-child(4){--n:var(--accent-flowable)}
+        .flow-step::after,.flow-step:last-child::after{content:"";display:block;position:absolute;left:-42px;top:26px;bottom:auto;width:14px;height:14px;border-radius:50%;background:var(--bg-dark);border:2px solid var(--n);box-shadow:0 0 0 5px color-mix(in srgb,var(--n) 14%,transparent),0 0 18px var(--n)}
+        .flow-step:hover{transform:translateX(6px);border-color:color-mix(in srgb,var(--n) 45%,transparent)}
+        .flow-step h3{flex-wrap:wrap;font-size:17px;letter-spacing:-.02em}
+        .section.active .flow-step{animation:secIn .7s var(--ease) both}
+        .section.active .flow-step:nth-child(2){animation-delay:.1s}.section.active .flow-step:nth-child(3){animation-delay:.2s}.section.active .flow-step:nth-child(4){animation-delay:.3s}
+        [class^="badge-"]{border-radius:99px!important;padding:4px 11px!important;font:600 11px var(--mono)!important;letter-spacing:.05em;border:1px solid color-mix(in srgb,currentColor 35%,transparent)}
+
+        @media(max-width:900px){body{flex-direction:column}.sidebar{width:100%;flex-direction:row;overflow-x:auto;padding:0 8px}.sidebar-header{border:0;margin:0;padding:12px 14px;white-space:nowrap}.sidebar-header::after,.hint,.nav-btn::before{display:none}.nav-btn{white-space:nowrap;margin:8px 2px;padding:10px 14px}.prog{left:0}.main-content{padding:28px 18px}.flow-container{padding-left:40px}.flow-step::after,.flow-step:last-child::after{left:-34px}#folders>div[style*="display: flex"]{flex-direction:column}.tree-container{max-width:none!important;width:100%}}
+        @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+        /* Ajustements */
+        .sidebar-header{white-space:nowrap;gap:10px;font-size:16px}
+        .sidebar-header::after{letter-spacing:.1em;padding:3px 7px}
+        .tree-container{max-width:400px!important;min-width:300px;overflow:auto}
+        .tree-node{padding-left:8px}
+        .tree-children{margin-left:10px}
+        .tree-item{white-space:nowrap;padding:6px 10px}
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <span>📚</span> IncidentFlow V2
+        </div>
+        <button class="nav-btn active" onclick="showSection('intro')">1. Vue d'ensemble</button>
+        <button class="nav-btn" onclick="showSection('diagrams')">2. Schémas de l'Architecture</button>
+        <button class="nav-btn" onclick="showSection('folders')">3. Explorateur & Code Utile (Détaillé)</button>
+        <button class="nav-btn" onclick="showSection('flow-kc')">4. Flux : Auth (Keycloak)</button>
+        <button class="nav-btn" onclick="showSection('flow-bpm')">5. Flux : Incidents (Flowable)</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        
+        <!-- SECTION 1: Intro -->
+        <div id="intro" class="section active">
+            <h1>Vue d'ensemble du Projet</h1>
+            <p>Bienvenue dans le guide interactif avancé. Il contient non seulement l'arborescence complète, mais aussi des <b>morceaux de codes clés</b> (snippets) et des <b>schémas Mermaid</b> générés en temps réel pour comprendre le cœur de votre application.</p>
+            
+                        <div class="cmap-wrap">
+                <span class="cmap-cap">Carte du système</span>
+                <svg class="cmap" viewBox="0 0 760 270" role="img" aria-label="Carte des composants : React, Keycloak, Spring Boot, Flowable, PostgreSQL">
+                    <path id="e1" class="edge" d="M185,60 C280,60 250,135 305,135"/>
+                    <path id="e2" class="edge" d="M110,85 L110,185"/>
+                    <path id="e3" class="edge" d="M185,210 C280,210 250,135 305,135"/>
+                    <path id="e4" class="edge" d="M455,135 C520,135 500,60 575,60"/>
+                    <path id="e5" class="edge" d="M455,135 C520,135 500,210 575,210"/>
+                    <path id="e6" class="edge" d="M650,85 L650,185"/>
+                    <circle class="pulse" r="3.5"><animateMotion dur="2.8s" repeatCount="indefinite"><mpath href="#e1"/></animateMotion></circle>
+                    <circle class="pulse" r="3.5"><animateMotion dur="2.4s" begin="-1s" repeatCount="indefinite"><mpath href="#e2"/></animateMotion></circle>
+                    <circle class="pulse" r="3.5"><animateMotion dur="3.2s" begin="-2s" repeatCount="indefinite"><mpath href="#e3"/></animateMotion></circle>
+                    <circle class="pulse" r="3.5"><animateMotion dur="2.6s" begin="-.5s" repeatCount="indefinite"><mpath href="#e4"/></animateMotion></circle>
+                    <circle class="pulse" r="3.5"><animateMotion dur="3s" begin="-1.5s" repeatCount="indefinite"><mpath href="#e5"/></animateMotion></circle>
+                    <circle class="pulse" r="3.5"><animateMotion dur="2.2s" begin="-.8s" repeatCount="indefinite"><mpath href="#e6"/></animateMotion></circle>
+                    <g class="node" transform="translate(110,60)" style="--c:#4d7cfe"><rect x="-75" y="-25" width="150" height="50" rx="14"/><text class="n" y="-2">Frontend</text><text class="s" y="14">React / Vite</text></g>
+                    <g class="node" transform="translate(110,210)" style="--c:#f5a524"><rect x="-75" y="-25" width="150" height="50" rx="14"/><text class="n" y="-2">Keycloak</text><text class="s" y="14">IAM / OAuth2</text></g>
+                    <g class="node" transform="translate(380,135)" style="--c:#ef4444"><rect x="-75" y="-25" width="150" height="50" rx="14"/><text class="n" y="-2">Spring Boot</text><text class="s" y="14">API REST + JWT</text></g>
+                    <g class="node" transform="translate(650,60)" style="--c:#2dd4a7"><rect x="-75" y="-25" width="150" height="50" rx="14"/><text class="n" y="-2">Flowable</text><text class="s" y="14">moteur BPMN</text></g>
+                    <g class="node" transform="translate(650,210)" style="--c:#a06bff"><rect x="-75" y="-25" width="150" height="50" rx="14"/><text class="n" y="-2">PostgreSQL</text><text class="s" y="14">persistance</text></g>
+                </svg>
+            </div>
+
+            <h2>Les 4 Piliers de l'Application</h2>
+            <div class="grid">
+                <div class="card">
+                    <h3 style="color: var(--primary)">⚛️ Frontend (React / Vite)</h3>
+                    <p>Gère l'affichage, intercepte les requêtes API pour y injecter le token Keycloak automatiquement.</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: #ef4444">🍃 Backend (Spring Boot)</h3>
+                    <p>Point d'API REST. Protégé par Spring Security (OAuth2 Resource Server) qui valide les tokens.</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: var(--accent-flowable)">⚙️ Flowable (Moteur BPMN)</h3>
+                    <p>Lit les fichiers XML pour créer un processus (ProcessInstance) par incident et assigne des tâches.</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: var(--accent-keycloak)">🔑 Keycloak (Serveur IAM)</h3>
+                    <p>Stocke les mots de passe de façon sécurisée, et synchronise les rôles comme "User Attributes".</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: DIAGRAMS -->
+        <div id="diagrams" class="section">
+            <h1>Schémas de l'Architecture (Générés dynamiquement)</h1>
+            <p>Ces diagrammes interactifs illustrent comment vos systèmes communiquent entre eux.</p>
+
+            <h2>Architecture Réseau & Conteneurs (Docker)</h2>
+            <div class="diagram-box">
+                <div class="mermaid">
+                flowchart TD
+    A["Navigateur Client (React)"] -->|"Port 3001"| B("Conteneur Frontend")
+    A -->|"API REST JWT (Port 8081)"| C("Conteneur Backend (Spring Boot)")
+    A -->|"Login OAuth2 (Port 8080)"| D("Conteneur Keycloak")
+    
+    C -->|"Lectures/Ecritures"| E[("PostgreSQL BDD")]
+    C -->|"Requêtes Admin REST"| D
+    
+    D -->|"Stocke Users/Tokens"| E
+    
+    subgraph Moteur["Moteur Intégré Java"]
+        C -.-> F("API Java Flowable")
+    end
+    F -.-> E
+    
+    style A fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#fff
+    style B fill:#3b82f6,color:#fff
+    style C fill:#ef4444,color:#fff
+    style D fill:#f59e0b,color:#fff
+    style E fill:#334155,color:#fff
+    style F fill:#10b981,color:#fff
+                </div>
+            </div>
+
+            <h2>Diagramme de Séquence : Création d'Incident avec Flowable</h2>
+            <div class="diagram-box">
+                <div class="mermaid">
+                sequenceDiagram
+    participant User as Utilisateur
+    participant React as Frontend React
+    participant Spring as Spring Boot
+    participant DB as PostgreSQL
+    participant Flowable as Moteur Flowable
+
+    User->>React: Remplit formulaire et clique Creer
+    React->>Spring: POST /api/incidents (+ JWT Token)
+    Spring->>DB: INSERT INTO incidents
+    DB-->>Spring: Retourne ID local (ex 5)
+    Spring->>Flowable: runtimeService.startProcessInstanceByKey
+    Flowable->>DB: Sauvegarde du processus BPMN
+    Flowable-->>Spring: Retourne processInstanceId
+    Spring->>DB: UPDATE incidents SET process_instance_id
+    Spring-->>React: HTTP 201 Created
+    React-->>User: Affiche Incident cree avec succes
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: Folders & Code -->
+        <div id="folders" class="section">
+            <h1>Explorateur de Code Ultra-Détaillé</h1>
+            <p>Cet explorateur couvre <b>tous les fichiers importants</b> du projet. Cliquez sur n'importe quel fichier coloré en bleu pour comprendre son rôle et voir son extrait de code le plus important.</p>
+            
+            <div style="display: flex; gap: 30px; align-items: flex-start;">
+                <!-- TREE NAV -->
+                <div class="tree-container" style="flex: 1; max-width: 350px; max-height: 70vh; overflow-y: auto;">
+                    
+                    <!-- DOCKER ROOT -->
+                    <div class="tree-node">
+                        <div class="tree-item folder" onclick="toggleFolder('folder-root')"><span class="icon">📁</span> App_V2 (Racine)</div>
+                        <div id="folder-root" class="tree-children open">
+                            <div class="tree-item file important" onclick="showCodeInfo('DockerCompose')"><span class="icon">🐳</span> docker-compose.yml</div>
+                            
+                            <!-- BACKEND -->
+                            <div class="tree-node">
+                                <div class="tree-item folder" onclick="toggleFolder('folder-backend')"><span class="icon">📁</span> backend/</div>
+                                <div id="folder-backend" class="tree-children open">
+                                    
+                                    <div class="tree-node">
+                                        <div class="tree-item folder" onclick="toggleFolder('folder-config')"><span class="icon">📁</span> config/</div>
+                                        <div id="folder-config" class="tree-children">
+                                            <div class="tree-item file important" onclick="showCodeInfo('SecurityConfig')"><span class="icon">📄</span> SecurityConfig.java</div>
+                                            <div class="tree-item file important" onclick="showCodeInfo('FlowableConfig')"><span class="icon">📄</span> FlowableConfig.java</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="tree-node">
+                                        <div class="tree-item folder" onclick="toggleFolder('folder-controller')"><span class="icon">📁</span> controller/</div>
+                                        <div id="folder-controller" class="tree-children">
+                                            <div class="tree-item file important" onclick="showCodeInfo('IncidentController')"><span class="icon">📄</span> IncidentController.java</div>
+                                            <div class="tree-item file important" onclick="showCodeInfo('UserController')"><span class="icon">📄</span> UserController.java</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="tree-node">
+                                        <div class="tree-item folder" onclick="toggleFolder('folder-service')"><span class="icon">📁</span> service/</div>
+                                        <div id="folder-service" class="tree-children open">
+                                            <div class="tree-item file important" onclick="showCodeInfo('IncidentService')"><span class="icon">📄</span> IncidentService.java</div>
+                                            <div class="tree-item file important" onclick="showCodeInfo('KeycloakAdminService')"><span class="icon">📄</span> KeycloakAdminService.java</div>
+                                            <div class="tree-item file important" onclick="showCodeInfo('UserService')"><span class="icon">📄</span> UserService.java</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="tree-node">
+                                        <div class="tree-item folder" onclick="toggleFolder('folder-model')"><span class="icon">📁</span> model/</div>
+                                        <div id="folder-model" class="tree-children">
+                                            <div class="tree-item file important" onclick="showCodeInfo('IncidentModel')"><span class="icon">📄</span> Incident.java</div>
+                                            <div class="tree-item file important" onclick="showCodeInfo('UserModel')"><span class="icon">📄</span> User.java</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="tree-node">
+                                        <div class="tree-item folder" onclick="toggleFolder('folder-resources')"><span class="icon">📁</span> resources/</div>
+                                        <div id="folder-resources" class="tree-children">
+                                            <div class="tree-item file important" onclick="showCodeInfo('AppProps')"><span class="icon">📄</span> application-prod.properties</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- FRONTEND -->
+                            <div class="tree-node">
+                                <div class="tree-item folder" onclick="toggleFolder('folder-frontend')"><span class="icon">📁</span> frontend/</div>
+                                <div id="folder-frontend" class="tree-children open">
+                                    <div class="tree-item file important" onclick="showCodeInfo('ViteConfig')"><span class="icon">📄</span> vite.config.js</div>
+                                    
+                                    <div class="tree-node">
+                                        <div class="tree-item folder" onclick="toggleFolder('folder-src')"><span class="icon">📁</span> src/</div>
+                                        <div id="folder-src" class="tree-children open">
+                                            <div class="tree-item file important" onclick="showCodeInfo('App')"><span class="icon">📄</span> App.jsx</div>
+                                            <div class="tree-item file important" onclick="showCodeInfo('AppCss')"><span class="icon">📄</span> index.css</div>
+                                            
+                                            <div class="tree-node">
+                                                <div class="tree-item folder" onclick="toggleFolder('folder-components')"><span class="icon">📁</span> components/</div>
+                                                <div id="folder-components" class="tree-children open">
+                                                    <div class="tree-item file important" onclick="showCodeInfo('IncidentList')"><span class="icon">📄</span> IncidentListView.jsx</div>
+                                                    <div class="tree-item file important" onclick="showCodeInfo('UserManagement')"><span class="icon">📄</span> UserManagementView.jsx</div>
+                                                    <div class="tree-item file important" onclick="showCodeInfo('RoleManagement')"><span class="icon">📄</span> RoleManagementView.jsx</div>
+                                                    <div class="tree-item file important" onclick="showCodeInfo('Sidebar')"><span class="icon">📄</span> Sidebar.jsx</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- KEYCLOAK THEME -->
+                            <div class="tree-node">
+                                <div class="tree-item folder" onclick="toggleFolder('folder-keycloak')"><span class="icon">📁</span> keycloak/</div>
+                                <div id="folder-keycloak" class="tree-children">
+                                    <div class="tree-node">
+                                        <div class="tree-item folder" onclick="toggleFolder('folder-themes')"><span class="icon">📁</span> themes/incidentflow/</div>
+                                        <div id="folder-themes" class="tree-children">
+                                            <div class="tree-item file important" onclick="showCodeInfo('KcTheme')"><span class="icon">📄</span> login.ftl</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- BPMN -->
+                            <div class="tree-node">
+                                <div class="tree-item folder" onclick="toggleFolder('folder-bpmn')"><span class="icon">📁</span> bpmn_workflows/</div>
+                                <div id="folder-bpmn" class="tree-children open">
+                                    <div class="tree-item file important" onclick="showCodeInfo('BpmnXML')"><span class="icon">📄</span> incident_workflow_v2.bpmn20.xml</div>
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                <!-- INFO PANEL -->
+                <div class="info-panel" style="flex: 2; position: sticky; top: 20px;">
+                    <h3 id="info-title">Sélectionnez un fichier bleu à gauche</h3>
+                    <p id="info-desc">Son rôle détaillé et l'extrait de code essentiel apparaîtront ici.</p>
+                    <div id="info-code-container" style="display: none; margin-top: 15px;">
+                        <pre><code id="info-code"></code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 4: Flow Keycloak -->
+        <div id="flow-kc" class="section">
+            <h1>Le Modèle "Shadow User" (Synchronisation Keycloak)</h1>
+            <p>Comment l'application gère les rôles et la création d'utilisateurs en arrière-plan sans perturber le frontend.</p>
+            
+            <div class="flow-container">
+                <div class="flow-step">
+                    <h3>1. L'Administrateur crée un compte <span class="badge-react">React</span></h3>
+                    <p>L'Admin utilise l'interface React pour créer un collaborateur. Il choisit son email, nom, et son rôle local (ex: <i>Résolveur</i>).</p>
+                </div>
+                <div class="flow-step">
+                    <h3>2. Interception par UserService <span class="badge-spring">Spring Boot</span></h3>
+                    <p>Le backend sauvegarde l'utilisateur dans PostgreSQL (Shadow User) <b>ET</b> appelle immédiatement <code>keycloakAdminService.createUserInKeycloak(...)</code>.</p>
+                </div>
+                <div class="flow-step">
+                    <h3>3. Création distante & Injection d'attributs <span class="badge-kc">Keycloak API</span></h3>
+                    <p>Via l'API REST <code>admin-cli</code>, Spring Boot crée le compte dans Keycloak. La prouesse technique ici est que <b>le rôle local ("Résolveur") est poussé comme Attribut Personnalisé</b> dans Keycloak.</p>
+                </div>
+                <div class="flow-step">
+                    <h3>4. Token Enrichi <span class="badge-kc">Keycloak JWT</span></h3>
+                    <p>Lors de la prochaine connexion de cet utilisateur, Keycloak génèrera un JWT contenant ce rôle dans le token. Spring Security le lira pour autoriser ou refuser l'accès aux APIs !</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 5: Flow Flowable -->
+        <div id="flow-bpm" class="section">
+            <h1>L'Orchestration des Tâches par Flowable</h1>
+            
+            <div class="flow-container">
+                <div class="flow-step">
+                    <h3>1. Démarrage de Processus <span class="badge-flow">Flowable</span></h3>
+                    <p><code>runtimeService.startProcessInstanceByKey("incidentWorkflow", variables)</code> : Ce code charge le fichier XML. Flowable créé un contexte d'exécution unique pour ce ticket spécifique.</p>
+                </div>
+                <div class="flow-step">
+                    <h3>2. Les "UserTasks" <span class="badge-spring">Spring Boot</span></h3>
+                    <p>Le processus XML s'arrête sur une balise <code>&lt;userTask&gt;</code>. Flowable attend qu'un humain agisse. Le ticket est donc "En cours".</p>
+                </div>
+                <div class="flow-step">
+                    <h3>3. Transition (Clic sur un bouton) <span class="badge-react">React</span></h3>
+                    <p>L'utilisateur clique sur "Résoudre" dans l'interface. React appelle l'API <code>/incidents/transition</code>.</p>
+                </div>
+                <div class="flow-step">
+                    <h3>4. Validation de la Tâche <span class="badge-flow">Flowable</span></h3>
+                    <p>Spring Boot trouve la tâche Flowable en attente via <code>taskService.createTaskQuery()</code> et appelle <code>taskService.complete(taskId)</code>. Le moteur Flowable avance alors le pion sur le schéma XML jusqu'au prochain état (ex: "Clôturé") !</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Tab Navigation
+        function showSection(id) {
+            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            event.currentTarget.classList.add('active');
+            // Initialize mermaid only when the tab becomes visible to avoid 0-width SVG rendering bugs
+            if(id === 'diagrams' && !window.mermaidInitialized) {
+                if (typeof mermaid !== 'undefined') Promise.resolve(mermaid.run({ querySelector: '.mermaid' })).catch(err => console.warn('Mermaid render error:', err));
+                window.mermaidInitialized = true;
+            }
+        }
+
+        // Folder Tree Toggle
+        function toggleFolder(id) {
+            const el = document.getElementById(id);
+            if(el) {
+                el.classList.toggle('open');
+            }
+            event.stopPropagation();
+        }
+
+        // Expanded Code Snippets Dictionary
+        const codeInfos = {
+            'DockerCompose': {
+                title: "docker-compose.yml",
+                desc: "Le chef d'orchestre de l'infrastructure. Ce fichier définit tous les conteneurs (Postgres, Keycloak, Spring Boot, React) et la façon dont ils communiquent entre eux via un réseau privé Docker (<code>incidentflow-network-v2</code>).",
+                code: `<span class="code-keyword">services:</span>
+  <span class="code-function">incidentflow-backend-v2:</span>
+    <span class="code-keyword">build:</span> ./backend
+    <span class="code-keyword">ports:</span>
+      - <span class="code-string">"8081:8080"</span>
+    <span class="code-keyword">environment:</span>
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-v2:5432/incidentflow_v2
+      - KEYCLOAK_URL=http://keycloak-v2:8080`
+            },
+            'SecurityConfig': { 
+                title: "SecurityConfig.java (Spring Security)", 
+                desc: "Le garde du corps de l'API. Il intercepte les requêtes REST et valide cryptographiquement le jeton JWT envoyé par le Frontend, en vérifiant sa signature auprès de Keycloak.",
+                code: `<span class="code-annotation">@Bean</span>
+<span class="code-keyword">public</span> <span class="code-class">SecurityFilterChain</span> filterChain(HttpSecurity http) <span class="code-keyword">throws</span> Exception {
+    http.oauth2ResourceServer(oauth2 -> oauth2
+        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+    );
+
+    http.authorizeHttpRequests(auth -> auth
+        .requestMatchers(<span class="code-string">"/api/public/**"</span>).permitAll()
+        .requestMatchers(<span class="code-string">"/api/admin/**"</span>).hasRole(<span class="code-string">"ADMINISTRATEUR"</span>)
+        .anyRequest().authenticated()
+    );
+    <span class="code-keyword">return</span> http.build();
+}`
+            },
+            'FlowableConfig': {
+                title: "FlowableConfig.java",
+                desc: "Configure le moteur BPMN Flowable pour qu'il utilise la même base de données (PostgreSQL) et les mêmes transactions que Spring Boot (évitant ainsi la désynchronisation des données).",
+                code: `<span class="code-annotation">@Bean</span>
+<span class="code-keyword">public</span> <span class="code-class">SpringProcessEngineConfiguration</span> processEngineConfiguration(
+        DataSource dataSource, PlatformTransactionManager transactionManager) {
+        
+    <span class="code-class">SpringProcessEngineConfiguration</span> config = <span class="code-keyword">new</span> SpringProcessEngineConfiguration();
+    config.setDataSource(dataSource);
+    config.setTransactionManager(transactionManager);
+    config.setDatabaseSchemaUpdate(SpringProcessEngineConfiguration.DB_SCHEMA_UPDATE_TRUE);
+    
+    <span class="code-keyword">return</span> config;
+}`
+            },
+            'IncidentController': {
+                title: "IncidentController.java",
+                desc: "Expose les endpoints HTTP pour les incidents. Fait la liaison directe entre la requête HTTP du client React et la logique métier de <code>IncidentService</code>.",
+                code: `<span class="code-annotation">@RestController</span>
+<span class="code-annotation">@RequestMapping</span>(<span class="code-string">"/api/incidents"</span>)
+<span class="code-keyword">public class</span> <span class="code-class">IncidentController</span> {
+
+    <span class="code-annotation">@PostMapping</span>
+    <span class="code-keyword">public</span> <span class="code-class">ResponseEntity&lt;Incident&gt;</span> createIncident(<span class="code-annotation">@RequestBody</span> <span class="code-class">IncidentDTO</span> dto) {
+        <span class="code-class">Incident</span> created = incidentService.createIncident(dto);
+        <span class="code-keyword">return</span> ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+}`
+            },
+            'UserController': {
+                title: "UserController.java",
+                desc: "Gère les utilisateurs. L'endpoint clé <code>/me</code> permet au Frontend, fraîchement authentifié via Keycloak, de demander 'Qui suis-je ?' pour récupérer ses droits locaux.",
+                code: `<span class="code-annotation">@GetMapping</span>(<span class="code-string">"/me"</span>)
+<span class="code-keyword">public</span> <span class="code-class">ResponseEntity&lt;User&gt;</span> getCurrentUser(<span class="code-annotation">@AuthenticationPrincipal</span> Jwt jwt) {
+    <span class="code-comment">// Extrait l'email du token Keycloak (JWT)</span>
+    <span class="code-keyword">String</span> email = jwt.getClaimAsString(<span class="code-string">"email"</span>);
+    
+    <span class="code-comment">// Charge le profil local incluant la matrice RBAC</span>
+    <span class="code-class">User</span> user = userService.findByEmail(email);
+    <span class="code-keyword">return</span> ResponseEntity.ok(user);
+}`
+            },
+            'IncidentService': { 
+                title: "IncidentService.java", 
+                desc: "Le service qui fait le pont entre PostgreSQL et Flowable. Il ordonne au moteur BPMN de lancer une instance XML et garde une trace de son ID.",
+                code: `<span class="code-comment">// Lancer l'instance Flowable en passant l'ID du Ticket</span>
+<span class="code-keyword">Map</span>&lt;String, Object&gt; variables = <span class="code-keyword">new</span> HashMap<>();
+variables.put(<span class="code-string">"incidentCode"</span>, savedIncident.getIncidentCode());
+
+<span class="code-class">ProcessInstance</span> processInstance = runtimeService
+    .startProcessInstanceByKey(<span class="code-string">"incidentWorkflow"</span>, variables);
+
+<span class="code-comment">// Sauvegarde de l'ID du processus Flowable dans la table PostgreSQL 'incidents'</span>
+savedIncident.setProcessInstanceId(processInstance.getId());
+incidentRepository.save(savedIncident);`
+            },
+            'KeycloakAdminService': { 
+                title: "KeycloakAdminService.java", 
+                desc: "Le script bidirectionnel. Quand l'administrateur crée un profil localement (React -> Postgres), ce service l'injecte dans Keycloak via l'API REST <code>admin-cli</code>.",
+                code: `<span class="code-comment">// Injection du Rôle local PostgreSQL comme Attribut personnalisé Keycloak</span>
+<span class="code-keyword">Map</span>&lt;String, List&lt;String&gt;&gt; attributes = <span class="code-keyword">new</span> HashMap<>();
+attributes.put(<span class="code-string">"role"</span>, Collections.singletonList(roleName));
+
+<span class="code-class">UserRepresentation</span> kcUser = <span class="code-keyword">new</span> UserRepresentation();
+kcUser.setUsername(user.getEmail());
+kcUser.setEmail(user.getEmail());
+kcUser.setAttributes(attributes); <span class="code-comment">// <-- La magie opère ici</span>
+
+<span class="code-keyword">Response</span> response = keycloak.realm(<span class="code-string">"master"</span>).users().create(kcUser);`
+            },
+            'UserService': {
+                title: "UserService.java",
+                desc: "Encapsule la gestion des utilisateurs PostgreSQL et appelle <code>KeycloakAdminService</code> pour garantir l'intégrité entre les deux bases (Pattern Shadow User).",
+                code: `<span class="code-annotation">@Transactional</span>
+<span class="code-keyword">public</span> <span class="code-class">User</span> saveUser(<span class="code-class">User</span> user) {
+    <span class="code-comment">// 1. Création Physique PostgreSQL</span>
+    <span class="code-class">User</span> savedUser = userRepository.save(user);
+    
+    <span class="code-comment">// 2. Synchronisation IAM Distante</span>
+    keycloakAdminService.createUserInKeycloak(savedUser, <span class="code-string">"password"</span>, roleName);
+    
+    <span class="code-keyword">return</span> savedUser;
+}`
+            },
+            'IncidentModel': {
+                title: "Incident.java (Modèle JPA)",
+                desc: "Mappe la table SQL <code>incidents</code> en Objet Java. Notez la présence du champ <code>processInstanceId</code> qui fait le lien avec Flowable.",
+                code: `<span class="code-annotation">@Entity</span>
+<span class="code-annotation">@Table</span>(name = <span class="code-string">"incidents"</span>)
+<span class="code-keyword">public class</span> <span class="code-class">Incident</span> {
+    <span class="code-annotation">@Id</span>
+    <span class="code-annotation">@GeneratedValue</span>(strategy = GenerationType.IDENTITY)
+    <span class="code-keyword">private</span> Long id;
+
+    <span class="code-keyword">private</span> String title;
+    <span class="code-keyword">private</span> String status;
+
+    <span class="code-comment">// Lien crucial avec les tables de Flowable (ACT_RU_EXECUTION)</span>
+    <span class="code-annotation">@Column</span>(name = <span class="code-string">"process_instance_id"</span>)
+    <span class="code-keyword">private</span> String processInstanceId;
+}`
+            },
+            'UserModel': {
+                title: "User.java (Modèle JPA)",
+                desc: "Entité représentant l'utilisateur dans PostgreSQL. Contient la foreign key <code>role_id</code> qui pointe vers la matrice de permissions (RBAC).",
+                code: `<span class="code-annotation">@Entity</span>
+<span class="code-annotation">@Table</span>(name = <span class="code-string">"users"</span>)
+<span class="code-keyword">public class</span> <span class="code-class">User</span> {
+    <span class="code-annotation">@Id</span>
+    <span class="code-keyword">private</span> Long id;
+    
+    <span class="code-keyword">private</span> String email;
+    <span class="code-keyword">private</span> boolean active = <span class="code-keyword">true</span>; <span class="code-comment">// Gère les soft-deletes</span>
+
+    <span class="code-annotation">@ManyToOne</span>
+    <span class="code-annotation">@JoinColumn</span>(name = <span class="code-string">"role_id"</span>)
+    <span class="code-keyword">private</span> <span class="code-class">Role</span> role;
+}`
+            },
+            'AppProps': {
+                title: "application-prod.properties",
+                desc: "Le fichier de configuration principal du backend. Contient les variables d'environnement pour se lier à la BDD et s'authentifier à l'API admin Keycloak.",
+                code: `<span class="code-comment"># Connexion à Keycloak (en tant que Client Admin)</span>
+keycloak.admin.server-url=http://keycloak-v2:8080
+keycloak.admin.realm=master
+keycloak.admin.client-id=admin-cli
+keycloak.admin.username=admin
+keycloak.admin.password=\${KEYCLOAK_ADMIN_PASSWORD}
+
+<span class="code-comment"># Paramètres JWT Resource Server</span>
+spring.security.oauth2.resourceserver.jwt.issuer-uri=http://keycloak-v2:8080/realms/incidentflow
+spring.security.oauth2.resourceserver.jwt.jwk-set-uri=http://keycloak-v2:8080/realms/incidentflow/protocol/openid-connect/certs`
+            },
+            'ViteConfig': {
+                title: "vite.config.js",
+                desc: "Le bundler ultra-rapide utilisé pour React. Il build le code JSX en Javascript pur et expose un serveur local de développement.",
+                code: `<span class="code-keyword">export default</span> defineConfig({
+  plugins: [react()],
+  server: {
+    port: <span class="code-annotation">3000</span>,
+    host: <span class="code-keyword">true</span>, <span class="code-comment">// Expose le port pour Docker</span>
+    watch: {
+      usePolling: <span class="code-keyword">true</span> <span class="code-comment">// Garantit le Hot Reload (HMR) sous Windows/Docker</span>
+    }
+  }
+})`
+            },
+            'App': { 
+                title: "App.jsx (Frontend React)", 
+                desc: "C'est la racine du Frontend. Il gère l'état global, le routage (qui voit quoi), et possède un intercepteur (Helper) qui glisse le JWT dans chaque requête.",
+                code: `<span class="code-comment">// Fonction d'aide pour générer le bon Header d'autorisation</span>
+<span class="code-keyword">const</span> <span class="code-function">getHeaders</span> = () => {
+    <span class="code-keyword">const</span> headers = { <span class="code-string">'Content-Type'</span>: <span class="code-string">'application/json'</span> };
+    
+    <span class="code-comment">// On récupère le token mis en cache lors du Login</span>
+    <span class="code-keyword">const</span> token = localStorage.getItem(<span class="code-string">'token'</span>);
+    <span class="code-keyword">if</span> (token) headers[<span class="code-string">'Authorization'</span>] = <span class="code-string">\`Bearer \${token}\`</span>;
+    
+    <span class="code-keyword">return</span> headers;
+};
+
+<span class="code-comment">// Utilisation lors d'un appel API pour récupérer les incidents</span>
+<span class="code-keyword">const</span> res = <span class="code-keyword">await</span> fetch(<span class="code-string">"/api/incidents"</span>, { headers: getHeaders() });`
+            },
+            'AppCss': {
+                title: "index.css",
+                desc: "Contient toutes les classes CSS personnalisées. L'application utilise la méthodologie 'Glassmorphism' (effets de verre floutés) avec des variables CSS modernes.",
+                code: `<span class="code-comment">/* Le fameux effet Glassmorphism utilisé partout */</span>
+<span class="code-class">.card, .modal-content</span> {
+  <span class="code-keyword">background</span>: rgba(30, 41, 59, 0.7);
+  <span class="code-keyword">backdrop-filter</span>: blur(12px);
+  <span class="code-keyword">-webkit-backdrop-filter</span>: blur(12px);
+  <span class="code-keyword">border</span>: 1px solid rgba(255, 255, 255, 0.1);
+  <span class="code-keyword">box-shadow</span>: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}`
+            },
+            'IncidentList': {
+                title: "IncidentListView.jsx",
+                desc: "Le composant complexe affichant le tableau des incidents. Il possède de nombreux filtres (Catégorie, Statut) intégrés à des balises <code>&lt;select&gt;</code>.",
+                code: `<span class="code-comment">// Sélecteur natif HTML, lié au State React</span>
+&lt;<span class="code-class">select</span> 
+    className=<span class="code-string">"filter-select"</span> 
+    value={categoryFilter} 
+    onChange={(e) => { 
+        setCategoryFilter(e.target.value); 
+        setCurrentPage(<span class="code-annotation">1</span>); 
+    }}&gt;
+    &lt;<span class="code-class">option</span> value=<span class="code-string">"Tous"</span>&gt;Toutes Catégories&lt;/<span class="code-class">option</span>&gt;
+    &lt;<span class="code-class">option</span> value=<span class="code-string">"Matériel"</span>&gt;Matériel&lt;/<span class="code-class">option</span>&gt;
+&lt;/<span class="code-class">select</span>&gt;`
+            },
+            'UserManagement': {
+                title: "UserManagementView.jsx",
+                desc: "L'interface qui liste tous les utilisateurs et permet d'en créer de nouveaux. Elle communique avec le Backend, qui lui-même répercute la création sur Keycloak !",
+                code: `<span class="code-comment">// Lors de l'envoi du formulaire de création d'un utilisateur</span>
+<span class="code-keyword">const</span> res = <span class="code-keyword">await</span> fetch(<span class="code-string">\`\${API_BASE}/users\`</span>, {
+    method: <span class="code-string">'POST'</span>,
+    headers: getHeaders(),
+    body: JSON.stringify({
+        email: form.email,
+        name: form.name,
+        role: form.roleId <span class="code-comment">// L'ID du Rôle choisi (ex: 2 pour "Résolveur")</span>
+    })
+});
+<span class="code-comment">// Le backend créera le Shadow User + le Compte Keycloak</span>`
+            },
+            'RoleManagement': {
+                title: "RoleManagementView.jsx",
+                desc: "Gère la matrice RBAC (Role-Based Access Control). Permet de cocher/décocher dynamiquement les permissions pour chaque rôle, stockées dans la base locale.",
+                code: `<span class="code-comment">// Tableau dynamique de la Matrice de Permissions</span>
+{permissionsList.map(perm => (
+  &lt;<span class="code-class">td</span> key={perm.id}&gt;
+    &lt;<span class="code-class">input</span> 
+      type=<span class="code-string">"checkbox"</span>
+      checked={role.permissions.some(p => p.id === perm.id)}
+      onChange={(e) => handleTogglePermission(role.id, perm.id, e.target.checked)}
+    /&gt;
+  &lt;/<span class="code-class">td</span>&gt;
+))}`
+            },
+            'Sidebar': {
+                title: "Sidebar.jsx",
+                desc: "Le menu latéral. Il utilise le State local pour isoler son timer de 'Session Restante' afin d'éviter le rafraîchissement global et les glitchs d'interface.",
+                code: `<span class="code-comment">// Minuteur isolé pour afficher le temps de session restant (en secondes)</span>
+<span class="code-keyword">const</span> [timeLeft, setTimeLeft] = React.useState(sessionDuration);
+
+React.useEffect(() => {
+    <span class="code-keyword">const</span> interval = setInterval(() => {
+        setTimeLeft(prev => {
+            <span class="code-keyword">if</span> (prev <= <span class="code-annotation">1</span>) {
+                handleLogout(); <span class="code-comment">// Expiration locale</span>
+                <span class="code-keyword">return</span> sessionDuration;
+            }
+            <span class="code-keyword">return</span> prev - <span class="code-annotation">1</span>;
+        });
+    }, <span class="code-annotation">1000</span>);
+    <span class="code-keyword">return</span> () => clearInterval(interval);
+}, []);`
+            },
+            'KcTheme': {
+                title: "login.ftl (Keycloak FreeMarker)",
+                desc: "Fichier de thème (HTML/FreeMarker) inséré dans Keycloak. Il remplace le design d'origine par notre interface 'Glassmorphism' pour une transition invisible.",
+                code: `<span class="code-comment">&lt;!-- Code inséré directement dans le serveur Keycloak --&gt;</span>
+&lt;<span class="code-class">div</span> class=<span class="code-string">"login-container animate-fade-in"</span>&gt;
+  &lt;<span class="code-class">div</span> class=<span class="code-string">"login-card"</span>&gt;
+    &lt;<span class="code-class">h2</span>&gt;IncidentFlow V2&lt;/<span class="code-class">h2</span>&gt;
+    
+    &lt;<span class="code-class">form</span> action=<span class="code-string">"\${url.loginAction}"</span> method=<span class="code-string">"post"</span>&gt;
+      &lt;<span class="code-class">input</span> id=<span class="code-string">"username"</span> name=<span class="code-string">"username"</span> type=<span class="code-string">"text"</span> placeholder=<span class="code-string">"Email"</span> /&gt;
+      &lt;<span class="code-class">input</span> id=<span class="code-string">"password"</span> name=<span class="code-string">"password"</span> type=<span class="code-string">"password"</span> /&gt;
+      &lt;<span class="code-class">button</span> type=<span class="code-string">"submit"</span>&gt;Se connecter&lt;/<span class="code-class">button</span>&gt;
+    &lt;/<span class="code-class">form</span>&gt;
+  &lt;/<span class="code-class">div</span>&gt;
+&lt;/<span class="code-class">div</span>&gt;`
+            },
+            'BpmnXML': {
+                title: "incident_workflow_v2.bpmn20.xml",
+                desc: "Le modèle BPMN interprété par le moteur Flowable. Définit le diagramme du processus (Nouveau -> Assigné -> Résolu) sous forme balisée (XML).",
+                code: `<span class="code-comment">&lt;!-- Une UserTask : Le système va s'arrêter et attendre qu'un humain agisse --&gt;</span>
+&lt;<span class="code-class">userTask</span> id=<span class="code-string">"task_assign"</span> name=<span class="code-string">"Assigner"</span>&gt;
+  &lt;<span class="code-class">documentation</span>&gt;Tâche pour assigner l'incident à un groupe ou technicien&lt;/<span class="code-class">documentation</span>&gt;
+&lt;/<span class="code-class">userTask</span>&gt;
+
+<span class="code-comment">&lt;!-- Un lien (flèche) entre la tâche d'assignation et de résolution --&gt;</span>
+&lt;<span class="code-class">sequenceFlow</span> id=<span class="code-string">"flow2"</span> sourceRef=<span class="code-string">"task_assign"</span> targetRef=<span class="code-string">"task_resolve"</span>&gt;&lt;/<span class="code-class">sequenceFlow</span>&gt;`
+            }
+        };
+
+        function showCodeInfo(key) {
+            const info = codeInfos[key];
+            if(info) {
+                document.getElementById('info-title').innerHTML = info.title;
+                document.getElementById('info-desc').innerHTML = info.desc;
+                document.getElementById('info-code-container').style.display = 'block';
+                document.getElementById('info-code').innerHTML = info.code;
+            }
+            event.stopPropagation();
+        }
+    </script>
+    <script>
+    /* Améliorations : projecteur, progression, clavier, explorateur */
+    (function () {
+        const root = document.documentElement;
+        addEventListener('pointermove', e => {
+            root.style.setProperty('--mx', e.clientX + 'px');
+            root.style.setProperty('--my', e.clientY + 'px');
+        }, { passive: true });
+        document.querySelectorAll('.card').forEach(c => c.addEventListener('pointermove', e => {
+            const r = c.getBoundingClientRect();
+            c.style.setProperty('--x', (e.clientX - r.left) + 'px');
+            c.style.setProperty('--y', (e.clientY - r.top) + 'px');
+        }));
+
+        const mc = document.querySelector('.main-content');
+        const pg = document.createElement('div');
+        pg.className = 'prog';
+        document.body.appendChild(pg);
+        const upd = () => {
+            const m = mc.scrollHeight - mc.clientHeight;
+            pg.style.transform = 'scaleX(' + (m > 0 ? mc.scrollTop / m : 0) + ')';
+        };
+        mc.addEventListener('scroll', upd, { passive: true });
+
+        const btns = Array.from(document.querySelectorAll('.nav-btn'));
+        btns.forEach(b => b.addEventListener('click', () => { mc.scrollTo({ top: 0 }); setTimeout(upd, 60); }));
+        const hint = document.createElement('div');
+        hint.className = 'hint';
+        hint.textContent = '← → ou 1–' + btns.length + ' pour naviguer';
+        document.querySelector('.sidebar').appendChild(hint);
+        addEventListener('keydown', e => {
+            if (e.metaKey || e.ctrlKey || e.altKey || e.target.matches('input,textarea')) return;
+            const i = btns.findIndex(b => b.classList.contains('active'));
+            let n = -1;
+            if (e.key === 'ArrowRight') n = Math.min(i + 1, btns.length - 1);
+            else if (e.key === 'ArrowLeft') n = Math.max(i - 1, 0);
+            else if (/^[1-9]$/.test(e.key) && +e.key <= btns.length) n = +e.key - 1;
+            if (n >= 0 && n !== i) btns[n].click();
+        });
+
+        const _sci = window.showCodeInfo;
+        window.showCodeInfo = function (k) {
+            const t = window.event && window.event.currentTarget;
+            _sci(k);
+            document.querySelectorAll('.tree-item.selected').forEach(x => x.classList.remove('selected'));
+            if (t && t.classList) t.classList.add('selected');
+            const p = document.querySelector('.info-panel');
+            p.classList.remove('flash'); void p.offsetWidth; p.classList.add('flash');
+        };
+
+        const box = document.getElementById('info-code-container');
+        const cb = document.createElement('button');
+        cb.className = 'copy-btn';
+        cb.textContent = 'Copier';
+        cb.onclick = () => {
+            if (!navigator.clipboard) return;
+            navigator.clipboard.writeText(document.getElementById('info-code').innerText).then(() => {
+                cb.textContent = 'Copié ✓';
+                setTimeout(() => { cb.textContent = 'Copier'; }, 1400);
+            }).catch(() => {});
+        };
+        box.appendChild(cb);
+    })();
+    </script>
+</body>
+</html>

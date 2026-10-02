@@ -1,93 +1,77 @@
-# IncidentFlow V2 - Gestion d'Incidents & Moteur de Workflow BPMN
+# IncidentFlow V2 🚀
 
-IncidentFlow V2 est une évolution majeure de la plateforme de gestion d'incidents. Cette version abandonne la machine à états manuelle de la V1 pour intégrer un véritable moteur de workflow industriel (**Flowable BPMN**), et remplace les mocks d'authentification par une gestion d'identité robuste avec **Keycloak**.
-
----
-
-## ✨ Nouveautés de la Version 2
-
-- **Moteur de Workflow BPMN (Flowable)** : L'application est désormais pilotée par un fichier BPMN 2.0 (`incident_workflow_v2.bpmn20.xml`). La logique de transition (qui peut faire quoi, quand et comment) n'est plus codée en dur dans Java, mais déléguée à Flowable.
-- **Visualiseur BPMN Dynamique** : Intégration d'un outil d'analyse interactif et de génération de rapports PDF (basé sur `bpmn-js`) pour inspecter visuellement le flux de travail, avec un dashboard statistique intégré.
-- **Sécurité OAuth2 & IAM** : Véritable intégration de Keycloak. Spring Boot agit comme un *Resource Server* qui valide les tokens JWT, garantissant une architecture Zero-Trust.
-- **Base de Données Multi-schémas** : Utilisation d'un conteneur PostgreSQL unique hébergeant deux schémas étanches (`incidentflow` et `keycloak`), optimisant les ressources tout en garantissant l'isolation des données.
+**IncidentFlow V2** est une application moderne de gestion et de résolution d'incidents, s'appuyant sur une architecture micro-services complète. L'application intègre une authentification sécurisée via **Keycloak** (IAM) et l'orchestration des processus métier via le moteur **Flowable** (BPMN).
 
 ---
 
-## 🚀 Architecture Technique
+## 🛠 Prérequis
 
-- **Backend API** : Spring Boot 3, Java 17, Spring Security (OAuth2), Flowable Engine, Hibernate/JPA.
-- **Frontend** : React 19, Vite, bpmn-js (pour le rendu SVG vectoriel interactif).
-- **Identity Provider (IAM)** : Keycloak (Port `8180`).
-- **Base de Données** : PostgreSQL (Port `5433`).
-
----
-
-## 📂 Structure du Projet
-
-```text
-├── backend/            # API Spring Boot & Logique Métier (Flowable)
-├── frontend/           # Interface Utilisateur React
-├── docker-compose.yml  # Orchestration de l'infrastructure
-├── postgres/           # Scripts d'initialisation (Multi-schemas)
-├── keycloak/           # Configurations et exports de Realm Keycloak
-├── rapports/           # Ensemble des documentations techniques (PDF/HTML/PUML)
-└── flowable_dynamic_analyzer.html # Outil d'analyse graphique et export PDF des BPMN
-```
+Pour lancer le projet sur votre machine locale, vous aurez uniquement besoin de :
+- [Docker](https://docs.docker.com/get-docker/) installé et en cours d'exécution.
+- [Docker Compose](https://docs.docker.com/compose/install/) (intégré aux versions récentes de Docker Desktop).
+- *Il n'est pas nécessaire d'installer Java, Node.js ou PostgreSQL localement, tout est entièrement conteneurisé !*
 
 ---
 
-## 🛠️ Démarrage Rapide (Environnement de Développement)
+## 🚀 Démarrage Rapide (Launch)
 
-### 1. Démarrer l'infrastructure (Base de données & Keycloak)
-À la racine du projet, lancez l'infrastructure vitale via Docker :
-```bash
-docker compose up -d incidentflow-postgres keycloak
-```
-> **Note** : PostgreSQL créera automatiquement les bases de données et les rôles nécessaires au premier lancement grâce au script `postgres/init/01-init-schemas.sql`.
+1. **Cloner le projet** et se placer à la racine :
+   ```bash
+   git clone <URL_DU_DEPOT>
+   cd IncidentFlow_V2
+   ```
 
-### 2. Démarrer le Backend (Spring Boot)
-Ouvrez un nouveau terminal et lancez le backend :
-```bash
-cd backend
-mvn spring-boot:run
-```
-Le backend démarrera sur le port **`8080`**. Au démarrage, il importera automatiquement le fichier BPMN situé dans `src/main/resources/processes/`.
+2. **Lancer l'ensemble des services** (Frontend, Backend, BDD, IAM, BPMN) avec Docker Compose :
+   ```bash
+   docker compose up -d --build
+   ```
+   *(La première exécution peut prendre quelques minutes le temps de télécharger les images de base et de builder le projet Java/React).*
 
-### 3. Démarrer le Frontend (React)
-Dans un troisième terminal :
-```bash
-cd frontend
-npm install
-npm run dev
-```
-Accédez à l'application via : **[http://localhost:3000](http://localhost:3000)**.
+3. **Vérifier les logs** (si besoin) :
+   ```bash
+   docker compose logs -f incidentflow-backend-v2
+   ```
+
+*(Note architecturale : Ne lancez pas le backend avec `mvn spring-boot:run`, toute recompilation ou lancement doit se faire via le conteneur Docker afin de respecter la liaison des réseaux isolés).*
 
 ---
 
-## 📊 Outils & Documentation
+## 🔗 Liens & Accès (Identifiants)
 
-Cette version est livrée avec un écosystème documentaire complet généré lors du développement :
+Une fois tous les conteneurs démarrés, voici les différents portails accessibles :
 
-### 1. L'Analyseur Dynamique BPMN
-Ouvrez le fichier `flowable_dynamic_analyzer.html` directement dans votre navigateur web.
-- Importez le fichier XML du workflow pour voir le **schéma interactif**.
-- Un mode "Spotlight" (focus laser) et un tableau d'inventaire permettent de comprendre le rôle de chaque tâche.
-- Un bouton d'**export PDF vectoriel** permet de générer des rapports techniques de haute qualité pour la validation métier.
+### 1. 🖥 Application Web Principale (React)
+- **URL** : [http://localhost:3001](http://localhost:3001)
+- **Comptes de test (Authentification gérée par Keycloak)** :
+  - *Administrateur* : `admin@netmar.com` / **Mot de passe** : `password`
+  - *Opérateur* : `operateur@netmar.com` / **Mot de passe** : `password`
 
-### 2. Les Rapports d'Architecture
-Dans le dossier `/rapports`, vous trouverez les versions PDF et HTML des décisions d'architecture :
-- **Architecture de Base de données (V2)**
-- **Architecture RBAC & Intégration Keycloak**
-- **Logiques de transition & Cycles de vie Kanban**
-- **Parcours technique Flowable XML**
+### 2. 🔐 Keycloak (Gestion des Identités et Accès)
+- **URL** : [http://localhost:8181](http://localhost:8181)
+- **Identifiants Administrateur (Master Realm)** : 
+  - **Login** : `admin`
+  - **Mot de passe** : `admin_secure_keycloak_pass`
+
+### 3. ⚙️ Flowable UI (Moteur de Workflow BPMN)
+- **URL** : [http://localhost:8082/flowable-ui](http://localhost:8082/flowable-ui)
+- **Identifiants par défaut** :
+  - **Login** : `admin`
+  - **Mot de passe** : `test`
 
 ---
 
-## 🔐 Identifiants par Défaut
+## 📚 Documentation Interactive de Soutenance
 
-**Keycloak Admin Console** (http://localhost:8180/admin) :
-- User: `admin`
-- Password: *(Défini dans le `.env` à la racine)*
+Un guide technique interactif détaillé a été rédigé pour la soutenance. Il cartographie tout le parcours de la donnée, du "Shadow User" jusqu'à l'exécution BPMN.
+👉 Pour le consulter, ouvrez simplement le fichier suivant dans n'importe quel navigateur web :
+`docs/presentation_soutenance.html`
 
-**Comptes de l'Application (Test)** :
-Référez-vous à la documentation Keycloak et au script de Seed initial pour la liste des utilisateurs de test (Administrateur, Superviseur, Opérateur, etc.).
+---
+
+## 🏗 Architecture Technique Globale
+- **Frontend** : React.js (Port `3001`)
+- **Backend** : Spring Boot 3 (Port `8081`)
+- **Base de Données** : PostgreSQL 16 (Port `5434`)
+- **Cache** : Redis 7 (Port `6381`)
+- **IAM** : Keycloak 21.1 (Port `8181`)
+- **BPMN** : Flowable 6.8 (Port `8082`)
